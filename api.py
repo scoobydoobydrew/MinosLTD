@@ -18,6 +18,7 @@ class ElevatorRequest(BaseModel):
     tupos_portas: str
     arithmos_fyllon: Optional[int] = None
     tupos_anoigmatos: Optional[str] = None
+    kateuthinsi_anoigmatos: Optional[str] = None
 
 # 2. ΡΥΘΜΙΣΗ CORS
 app.add_middleware(
@@ -75,3 +76,4 @@ async def solve_elevator(user_data: ElevatorRequest):
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
     
+
