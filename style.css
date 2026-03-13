@@ -195,9 +195,21 @@ h1 {
     box-shadow: 0 15px 30px var(--accent-glow);
 }
 
-/* =========================================
-   5. ΠΕΡΙΟΧΗ ΣΧΕΔΙΑΣΗΣ & ΑΠΟΤΕΛΕΣΜΑΤΑ
-   ========================================= */
+.loader {
+    border: 4px solid rgba(56, 189, 248, 0.1);
+    border-left-color: var(--accent);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 canvas {
     background: #000;
     border-radius: 25px;
@@ -209,7 +221,18 @@ canvas {
 #resultsTable {
     margin-top: 30px;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(101, 83, 91, 0);
     border-radius: 15px;
     border: 1px solid var(--border-color);
 }
+
+#elevator-plan-container svg {
+    max-width: 95%;
+    max-height: 95%;
+    display: block;
+    margin: auto;
+}
+
+/* Αν το background είναι μαύρο, κάνουμε το stroke των γραμμών άσπρο ή έντονο */
+.shaft-line { stroke: #fffffff9; }
+.cabin-line { stroke: #38bdf8; }
