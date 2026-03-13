@@ -51,7 +51,7 @@ def fetch_all_component_ids(db, table_name, id_column):
         # Εφαρμόζουμε ταξινόμηση ΜΟΝΟ αν πρόκειται για οδηγούς
         # έτσι δεν θα σκάσει στους άλλους πίνακες που δεν έχουν στήλη 'h1'
         if table_name == 'Odhgoi':
-            query = f"SELECT {id_column} FROM {table_name} ORDER BY h1 ASC"
+            query = f"SELECT {id_column} FROM {table_name} ORDER BY h1 DESC"
         else:
             query = f"SELECT {id_column} FROM {table_name}"
             
@@ -204,4 +204,4 @@ def fetch_bracket_by_id(db, bracket_id):
     cursor.execute(query, (bracket_id,))
     result = cursor.fetchone()
     cursor.close()
-    return result[]
+    return result
