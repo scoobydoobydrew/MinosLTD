@@ -2,6 +2,21 @@ from handle_db import connect_db,  fetch_component_data, fetch_all_component_ids
 from z3 import *
 import itertools
 
+def get_allowed_guide_rails(persons):
+    p = int(persons)
+
+    hierarchy = ["T75", "T89/A", "T90/A", "T125/A", "T127-2/B"]
+    if p<=5:
+        return hierarchy[0:]
+    elif p<=8:
+        return hierarchy[1:]
+    elif p<=12:
+        return hierarchy[2:]
+    elif p<=15:
+        return hierarchy[3:]
+    else:
+        return hierarchy[4:]
+
 
 
 
@@ -34,7 +49,8 @@ def find_optimal_design(data_from_api):
         'Tupos_Portas': door_type,
         # Διόρθωση: Αν είναι ημιαυτόματη και δώσεις 1, το κρατάμε. Αν δεν δώσεις τίποτα, βάζουμε 1.0
         'Arithmos_Fyllon': float(leaf_input) if leaf_input is not None else (1.0 if door_type == 'Ημιαυτόματη' else 2.0),
-        'Tupos_Anoigmatos': data_from_api.get('tupos_anoigmatos')
+        'Tupos_Anoigmatos': data_from_api.get('tupos_anoigmatos'),
+        'Kateuthinsi_anoigmatos': data_from_api.get('kateuthinsi_anoigmatos')
     }
 
    
@@ -51,15 +67,19 @@ def find_optimal_design(data_from_api):
     except ValueError as e:
         db.close()
         return f"Constraint Load Error: {e}"
-
-    # 2. Προσδιορισμός τύπου ανοίγματος (Mapping για την SQL)
+    
+    requested_opening = user_inputs.get('Tupos_Anoigmatos')
+    
     if door_type == 'Ημιαυτόματη':
         required_opening_type = 'Ημιαυτόματη'
         user_inputs['Tupos_Anoigmatos'] = 'Ημιαυτόματη'
-    elif raw_thesi == 'rear' and door_type == 'Αυτόματη':    
-        required_opening_type = 'Κεντρικό'
-    else:
-        required_opening_type = 'Πλαϊνό'
+    
+    elif door_type == 'Αυτόματη':
+        
+        if requested_opening in ['Κεντρικό', 'Πλαϊνό']:
+            required_opening_type = requested_opening
+            user_inputs['Tupos_Anoigmatos'] = required_opening_type
+
 
     # 3. Ανάκτηση Πόρτας και Προσδιορισμός Πάχους
     door_options = fetch_suitable_door_ids(db, anoigma_portas, door_type, user_inputs['Arithmos_Fyllon'], required_opening_type)
@@ -72,13 +92,19 @@ def find_optimal_design(data_from_api):
             else:
                 actual_thickness = float(sample_door_data.get('Pahos_Portas', 180))
 
-
+    Platos = user_inputs['Platos_freatiou']
+    Vathos = user_inputs['Vathos_freatiou']
+    shaft_area = (Platos * Vathos) 
+    
+    # βάζουμε μικρό περιθώριο για το σασί (π.χ. 200). Αλλιώς πάμε στο ασφαλές 350.
+    sassi_margin = 200 if shaft_area <= 1750000 else 350
+    
     if raw_thesi == 'side':
-        est_w = max(0, user_inputs['Platos_freatiou'] - 380)
-        est_d = max(0, user_inputs['Vathos_freatiou'] - actual_thickness)
+        est_w = max(0, Platos - sassi_margin) 
+        est_d = max(0, Vathos - actual_thickness - 50) # ο αέρας ανάμεσα στην αυτόματη πόρτα και την καμπίνα
     else:
-        est_w = max(0, user_inputs['Platos_freatiou'] - 160)
-        est_d = max(0, user_inputs['Vathos_freatiou'] - 450)
+        est_w = max(0, Platos - 200)
+        est_d = max(0, Vathos - actual_thickness - sassi_margin)
     estimated_area = (est_w * est_d) / 1000000
 
     # 5. Υπολογισμός Ατόμων
@@ -109,48 +135,144 @@ def find_optimal_design(data_from_api):
         elif estimated_area < 3.10: theoretical_atoma = 20
         else: theoretical_atoma = 24
 
-    # 6. Φιλτράρισμα Σασί
+    
+    # 6. Φιλτράρισμα Σασί (Αρχικό από τη βάση)
     sassi_options = fetch_sassi_by_weight(db, theoretical_atoma)
     temp_atoma = theoretical_atoma
     while not sassi_options and temp_atoma > 1:
-        temp_atoma -= 1
+        temp_atoma += 1
         sassi_options = fetch_sassi_by_weight(db, temp_atoma)
 
-    # Τυποποίηση Σασί
-    hosting_dim = user_inputs['Vathos_freatiou'] if raw_thesi == 'side' else user_inputs['Platos_freatiou']
-    target_dbg = 0
+    # Φτιάχνουμε το cache ΜΙΑ φορά στην αρχή για να υπάρχει και στα δύο σενάρια
+    if 'sassi_cache' not in locals():
+         sassi_cache = {s: fetch_component_data(db, 'Sassi', s, 'Sassi_ID') for s in sassi_options}
 
-    if 1500 <= hosting_dim < 1600: target_dbg = 800
-    elif 1600 <= hosting_dim < 1700: target_dbg = 850
-    elif 1700 <= hosting_dim < 1800: target_dbg = 900
-    elif 1800 <= hosting_dim < 2000: target_dbg = 1000
-    elif 2000 <= hosting_dim < 2200: target_dbg = 1100
-    elif 2200 <= hosting_dim < 2300: target_dbg = 1200
+    efficient_filtered_sassi = []
 
+   
+    # HARD SPLIT: MAX AREA vs FIXED AREA
+    
 
-    if target_dbg > 0:
-        efficient_filtered_sassi = []
+    if user_inputs.get('scenario') != 'fixed_area':
+        
+        # ΣΕΝΑΡΙΟ A: MAX AREA 
+        
+        if raw_thesi == 'side':
+            hosting_dim = user_inputs['Vathos_freatiou']
+            t_anoigmatos = user_inputs.get('Tupos_Anoigmatos') # Το παίρνουμε μια φορά σωστά
+            vathos = user_inputs['Vathos_freatiou']
+
+            if door_type == 'Ημιαυτόματη':
+                min_margin = 150 
+                max_logic_limit = hosting_dim * 0.55 
+            
+            # --- ΑΥΤΟΜΑΤΕΣ - ΠΛΑΪΝΟ ΑΝΟΙΓΜΑ ---
+            elif door_type == 'Αυτόματη' and t_anoigmatos == 'Πλαϊνό':
+                min_margin = 250
+                if vathos <= 1350:
+                    max_logic_limit = hosting_dim * 0.48
+                else: 
+                    max_logic_limit = hosting_dim * 0.50 
+
+            # --- ΑΥΤΟΜΑΤΕΣ - ΚΕΝΤΡΙΚΟ ΑΝΟΙΓΜΑ ---
+            elif door_type == 'Αυτόματη' and t_anoigmatos == 'Κεντρικό':
+                min_margin = 200
+                if vathos <= 1300:
+                    max_logic_limit = hosting_dim * 0.48
+                else:
+                    max_logic_limit = hosting_dim * 0.52
+
+        
+        else: # REAR
+            hosting_dim = user_inputs['Platos_freatiou']
+            if door_type == 'Ημιαυτόματη':
+                min_margin = 100 
+                max_logic_limit = hosting_dim * 0.60
+            else: 
+                min_margin = 150
+                max_logic_limit = hosting_dim * 0.60
+
+            
 
         for s_id in sassi_options:
-            s_data = fetch_component_data(db, 'Sassi', s_id, 'Sassi_ID')
-
-            if isinstance(s_data, dict):
-                # Αν το σασί δεν ταιριάζει στο target_dbg, το πετάμε ΤΩΡΑ
-                if float(s_data.get('Size', 0)) == target_dbg:
+            s_data = sassi_cache.get(s_id)
+            if s_data:
+                s_size = float(s_data.get('Size', 0))
+                # Ο δικός σου έλεγχος
+                if s_size <= (hosting_dim - min_margin) and s_size <= max_logic_limit:
                     efficient_filtered_sassi.append(s_id)
 
-       
-        if efficient_filtered_sassi:
-            sassi_options = efficient_filtered_sassi
+    else:
+        
+        # ΣΕΝΑΡΙΟ B: FIXED AREA 
+        
+        
+        # 1. Hosting Dimension & Margins (Κρατάμε τα ίδια για συνέπεια)
+        if raw_thesi == 'side':
+            hosting_dim = user_inputs['Vathos_freatiou']
+            if door_type == 'Ημιαυτόματη':
+                min_margin = 150  
+            else:
+                min_margin = 200
+        else: # REAR
+            hosting_dim = user_inputs['Platos_freatiou']
+            min_margin = 200
+
+        # 2. ΟΡΙΟ ΑΤΟΜΩΝ (People Limit)
+        # Αυτό είναι το ΚΛΕΙΔΙ για να μην σου βγάζει τεράστιο σασί σε λίγα άτομα
+        t_atoma = int(theoretical_atoma)
+        
+        if t_atoma <= 3:
+            max_people_limit = 600   # Μικρό σασί για μικρή καμπίνα
+        elif t_atoma <= 5:
+            max_people_limit = 900   # Μεσαίο σασί
+        elif t_atoma <= 8:
+            max_people_limit = 950  # Μεγάλο σασί
         else:
-            # Αν δεν βρέθηκε κανένα σασί με το ιδανικό DBG,
-            # κράτα μόνο τα 2-3 πρώτα (πιο ελαφριά) για να μην δοκιμάζεις 50 σασί
-            sassi_options = sassi_options[:3]
+            max_people_limit = 99999 # Απεριόριστο
+
+        for s_id in sassi_options:
+            s_data = sassi_cache.get(s_id)
+            if s_data:
+                s_size = float(s_data.get('Size', 0))
+                
+                # Εδώ ελέγχουμε να χωράει (Margin) ΚΑΙ να μην ξεπερνά το όριο ΑΤΟΜΩΝ
+                if s_size <= (hosting_dim - min_margin) and s_size <= max_people_limit:
+                    efficient_filtered_sassi.append(s_id)
+
+
+    
+    # ΚΟΙΝΗ ΛΟΓΙΚΗ ΤΑΞΙΝΟΜΗΣΗΣ (Ισχύει και για τα δύο)
+    
+    if efficient_filtered_sassi:
+        # Ταξινομούμε φθίνουσα 
+        efficient_filtered_sassi.sort(key=lambda x: float(sassi_cache[x].get('Size', 0)), reverse=True)
+        
+        
+        final_selection = []
+        size_counts = {} 
+        
+        for s_id in efficient_filtered_sassi:
+            size = float(sassi_cache[s_id].get('Size', 0))
+            if size not in size_counts: size_counts[size] = 0
+            
+            if size_counts[size] < 2: 
+                final_selection.append(s_id)
+                size_counts[size] += 1
+            
+            if len(final_selection) >= 5: break
+        
+        sassi_options = final_selection
+    else:
+        # Fallback
+        sassi_options.sort(key=lambda x: float(sassi_cache[x].get('Size', 0)))
+        sassi_options = sassi_options[:3]
 
     # 7. Επίλυση Συνδυασμών
     try:
         all_odhgoi_ids = fetch_all_component_ids(db, 'Odhgoi', 'Tupos_odhgou_ID')
-        odhgoi_options = all_odhgoi_ids[:4]
+        allowed_guides = get_allowed_guide_rails(theoretical_atoma)
+        odhgoi_options = [g for g in all_odhgoi_ids if g in allowed_guides]
         
         if not door_options: return {"status": "unsat", "error": "No suitable door found"}
         sassi_cache = {s: fetch_component_data(db, 'Sassi', s, 'Sassi_ID') for s in sassi_options}
@@ -163,7 +285,7 @@ def find_optimal_design(data_from_api):
         last_causes = []
 
         for s_id, o_id, d_id in all_combinations:
-            curr = user_inputs.copy()
+            curr = user_inputs.copy() # curr = current 
             curr.update({'Sassi_ID': s_id, 'Tupos_Odhgou': o_id, 'Porta_ID_for_Solver': d_id})
             
             curr['cached_sassi'] = sassi_cache[s_id]
@@ -256,7 +378,7 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
     pahos_sthrigmatos_min = sthrigma_data['Pahos_Min']
     pahos_sthrigmatos_max = sthrigma_data['Pahos_Max']
     APOSTASI_Y_CRITERIA = (Vathos_freatiou - Anoigma_odhgwn) / 2 # είναι η απόσταση μέχρι την μύτη του οδηγού
-    APOSTASI_Y_CRITERIA_AUTOMATH= (Vathos_freatiou - PAHOS_PORTAS_CONST_DB - Anoigma_odhgwn) / 2 
+    APOSTASI_Y_CRITERIA_AUTOMATH = (Vathos_freatiou - PAHOS_PORTAS_CONST_DB - Anoigma_odhgwn) / 2 
     threshold = 190.0
     apostasi_gia_wall_bracket_min = (h1 + pahos_sthrigmatos_min)
     apostasi_gia_wall_bracket_max = (h1 + pahos_sthrigmatos_max)
@@ -275,25 +397,65 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
     thesi_sassi = current_inputs.get('Thesi_Sassi')
 
 
-    if Platos_freatiou <= 1000 and DOOR_TYPE == 'Ημιαυτόματη' and  user_inputs['scenario'] == 'max_area':
-        l50_bracket = fetch_bracket_by_id(db, 'L50') # Βεβαιώσου ότι στη βάση λέγεται 'L50'
+    #if Vathos_freatiou <= 1200 and DOOR_TYPE == 'Ημιαυτόματη' and thesi_sassi == 'side' and current_inputs.get('scenario') != 'fixed_area':
+        #l75_bracket = fetch_bracket_by_id(db, 'L75') 
         
-        if l50_bracket:
-            normal_bracket_data = l50_bracket
-            wall_bracket_data = l50_bracket
+        #if l75_bracket:
+            #normal_bracket_data = l75_bracket
+            #wall_bracket_data = l75_bracket
 
-    if 1000 < Platos_freatiou <= 1300 and DOOR_TYPE == 'Ημιαυτόματη' and user_inputs['scenario'] == 'max_area':
-        l75_bracket = fetch_bracket_by_id(db, 'L75') 
+    #if 1200 < Vathos_freatiou <= 1230 and DOOR_TYPE == 'Ημιαυτόματη' and thesi_sassi == 'side':
+        #l75_bracket = fetch_bracket_by_id(db, 'L75') 
         
-        if l75_bracket:
-            normal_bracket_data = l75_bracket
-            wall_bracket_data = l75_bracket
+        #if l75_bracket:
+            #normal_bracket_data = l75_bracket
+            #wall_bracket_data = l75_bracket
     
-    #if Platos_freatiou <= 120 and DOOR_TYPE == 'Αυτόματη' and  user_inputs['scenario'] == 'max_area':
+    #if Vathos_freatiou <= 1130 and DOOR_TYPE == 'Αυτόματη' and thesi_sassi == 'side' and current_inputs.get('scenario') != 'fixed_area':
         #l50_bracket = fetch_bracket_by_id(db, 'L50') 
         
         #if l50_bracket:
+            #wall_bracket_data = l50_bracket
+
+
+    if Vathos_freatiou <= 1110 and DOOR_TYPE == 'Αυτόματη' and thesi_sassi == 'side' and current_inputs.get('scenario') == 'fixed_area':
+        l50_bracket = fetch_bracket_by_id(db, 'L50') 
+        
+        if l50_bracket:
             wall_bracket_data = l50_bracket
+
+    if Vathos_freatiou <= 1130 and DOOR_TYPE == 'Αυτόματη' and thesi_sassi == 'side' and current_inputs.get('scenario') == 'fixed_area':
+        l75_bracket = fetch_bracket_by_id(db, 'L75') 
+        
+        if l75_bracket:
+            wall_bracket_data = l75_bracket
+    
+    
+
+    
+
+    
+
+    #if Vathos_freatiou <= 1140 and DOOR_TYPE == 'Αυτόματη' and thesi_sassi == 'side':
+        #l75_bracket = fetch_bracket_by_id(db, 'L75') 
+        
+        #if l75_bracket:
+            #wall_bracket_data = l75_bracket
+
+    #if Platos_freatiou <= 1200 and DOOR_TYPE == 'Ημιαυτόματη' and thesi_sassi == 'rear' and current_inputs.get('scenario') != 'fixed_area':
+        #l50_bracket = fetch_bracket_by_id(db, 'L50')
+
+        #if l50_bracket:
+            #normal_bracket_data = l50_bracket
+            #wall_bracket_data = l50_bracket
+            
+
+
+ 
+
+    
+    
+
 
     
     #if 1200 < Platos_freatiou <= 1350 and DOOR_TYPE == 'Αυτόματη' and user_inputs['scenario'] == 'max_area':
@@ -303,24 +465,33 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
             #wall_bracket_data = l75_bracket
 
     
-    if thesi_sassi == 'Πίσω':
+    if thesi_sassi == 'rear':
     
         
         APOSTASI_X_CRITERIA_REAR = (Platos_freatiou - Anoigma_odhgwn) / 2 
 
     
-        if APOSTASI_X_CRITERIA_REAR >= threshold:
+        if APOSTASI_X_CRITERIA_REAR >= threshold and DOOR_TYPE == 'Αυτόματη':
             DEKSIA_SIDE_BRACKET = normal_bracket_data
             ARISTERA_SIDE_BRACKET = normal_bracket_data
-        else:
+            PAHOS_PORTAS_CONST = PAHOS_PORTAS_CONST_DB
+
+        elif APOSTASI_X_CRITERIA_REAR >= threshold and DOOR_TYPE == 'Ημιαυτόματη':
+            DEKSIA_SIDE_BRACKET = normal_bracket_data
+            ARISTERA_SIDE_BRACKET = normal_bracket_data
+            PAHOS_PORTAS_CONST = 0
+
+        elif APOSTASI_X_CRITERIA_REAR < threshold and DOOR_TYPE == 'Αυτόματη':
             DEKSIA_SIDE_BRACKET = wall_bracket_data
             ARISTERA_SIDE_BRACKET = wall_bracket_data
-    
-        if DOOR_TYPE == 'Αυτόματη':
             PAHOS_PORTAS_CONST = PAHOS_PORTAS_CONST_DB
-        else:
+        
+        elif APOSTASI_X_CRITERIA_REAR < threshold and DOOR_TYPE == 'Ημιαυτόματη':
+            DEKSIA_SIDE_BRACKET = wall_bracket_data
+            ARISTERA_SIDE_BRACKET = wall_bracket_data
             PAHOS_PORTAS_CONST = 0
     
+        
    
     else:
 
@@ -352,7 +523,7 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
                 PAHOS_PORTAS_CONST = PAHOS_PORTAS_CONST_DB
             
 
-    if thesi_sassi == 'Πίσω':
+    if thesi_sassi == 'rear':
         if DEKSIA_SIDE_BRACKET is None or ARISTERA_SIDE_BRACKET is None:
             return {"status": "unsat", "causes": ["No suitable Rear Brackets found"]}
     else:
@@ -413,6 +584,7 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
     solver.add(diff >= Vathos_Thalamou - Platos_thalamou)
     solver.add(Platos_thalamou >= 100) 
     solver.add(Vathos_Thalamou >= 100) 
+    solver.add(diff <= 600)
 
     
     if current_inputs.get('scenario') == 'fixed_area':
@@ -461,9 +633,11 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
                 "Apostasi_thalamou_toixou_ar_rear": get_exact_val(Apostasi_thalamou_toixou_ar_rear),
                 "Apostasi_thalamou_toixou_dek_rear": get_exact_val(Apostasi_thalamou_toixou_dek_rear),
                 "Apostasi_toixou_odhgou_y_rear": get_exact_val(Apostasi_toixou_odhgou_y_rear),
-                "Bracket_Door_Side": DOOR_SIDE_BRACKET['Sthrigma_ID'] if DOOR_SIDE_BRACKET else "None",
-                "Bracket_Opposite_Side": OPPOSITE_SIDE_BRACKET['Sthrigma_ID'] if OPPOSITE_SIDE_BRACKET else "None"
-                
+                "Bracket_Deksia_Side": DEKSIA_SIDE_BRACKET['Sthrigma_ID'] if DEKSIA_SIDE_BRACKET else "None",
+                "Bracket_Aristera_Side": ARISTERA_SIDE_BRACKET['Sthrigma_ID'] if ARISTERA_SIDE_BRACKET else "None",
+                "G_portas_val": float(G_portas),
+                "pahos_sthrtigmatos_rear": get_exact_val(pahos_sthrigmatos_rear)
+
                 
                 
             }
@@ -487,10 +661,12 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
                 "Apostasi_thalamou_toixou_y": get_exact_val(Apostasi_thalamou_toixou_y),
                 "Apostasi_thalamou_toixou_x": get_exact_val(Apostasi_thalamou_toixou_x),
                 "Bracket_Door_Side": DOOR_SIDE_BRACKET['Sthrigma_ID'] if DOOR_SIDE_BRACKET else "None",
-                "Bracket_Opposite_Side": OPPOSITE_SIDE_BRACKET['Sthrigma_ID'] if OPPOSITE_SIDE_BRACKET else "None"
-                
-                
-                
+                "Bracket_Opposite_Side": OPPOSITE_SIDE_BRACKET['Sthrigma_ID'] if OPPOSITE_SIDE_BRACKET else "None",
+                "G_portas_val": float(G_portas),
+                "pahos_sthrigmatos_door": get_exact_val(pahos_sthrigmatos_door_var),
+                "pahos_sthrigmatos_opposite": get_exact_val(pahos_sthrigmatos_opp_var)
+                  
+                 
             }
         return result
         
@@ -505,6 +681,11 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
 
 
     
+
+
+
+    
+
 
 
 
