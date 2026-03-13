@@ -7,8 +7,7 @@ from z3 import *
 
 # ΣΤΑΘΕΡΟΙ ΓΕΝΙΚΟΙ ΚΑΝΟΝΙΣΜΟΙ
 CONSTANT_rules = {
-'Apostasi_thalamou_toixou_x_min' : 70,
-'Apostasi_thalamou_toixou_y_min' :  70,
+'Apostasi_thalamou_toixou_x_min' : 100,
 'LAMPA_Y_SEMI_MIN' : 120.0,
 'LAMPA_Y_SEMI_MAX' : 200.0,
 'LAMPA_Y_AUTO' : 50.0
@@ -36,19 +35,22 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
         if req_area > 0:
             # Μετατρέπουμε σε int για να μην μπερδευτεί ο Solver με floats
             int_req_area = int(req_area)
-            int_max_area = int(req_area * 1.05)
+            int_max_area = int(req_area * 1.10)
 
             # Επιβάλλουμε το εμβαδόν
             solver.add(Platos_thalamou * Vathos_Thalamou >= int_req_area)
             solver.add(Platos_thalamou * Vathos_Thalamou <= int_max_area)
 
 
+
     THE_SASSI_POSITION = user_inputs.get('Thesi_Sassi')
     Tupos_Anoigmatos = user_inputs.get('Tupos_Anoigmatos')
     DOOR_TYPE = current_inputs.get('Tupos_Portas')
-    min_tolerance_door = 40.0
-    min_tolerance_opposite = 0.0
+    min_tolerance_door_s = 40.0 # περίπτωση πλαϊνού ανοίγματος (door = αριστερά, _s = side opening door)
+    min_tolerance_opposite_s = 0.0 # περίπτωση πλαϊνού ανοίγματος (opposite = δεξιά, _s = side opening door)
+    min_tolerance_c = 40.0 # περίπτωση κεντρικού ανοίγματος (_c = central opening door, ίδια ανοχή και στις δύο πλευρές)
     anoigma_portas = current_inputs.get('Anoigma_Portas')
+    kateuthinsi_anoigmatos = current_inputs.get('Kateuthinsi_anoigmatos')
 
     solver.add(Anoigma_odhgwn_const <= Vathos_Thalamou)
 
@@ -57,7 +59,14 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     Vathos_freatiou = user_inputs['Vathos_freatiou']
     diff= Platos_thalamou - Vathos_Thalamou
 
-    solver.add(If(diff >= 0, diff, -diff) <= 300)
+    abs_diff = If(diff >= 0, diff, -diff)
+
+    if current_inputs.get('scenario') == 'fixed_area':
+        solver.add(abs_diff <= 800) 
+    else:
+        solver.add(abs_diff <= 400)
+
+        
     solver.add(Apostasi_toixou_odhgou_y_1 >= 0)
     solver.add(Apostasi_toixou_odhgou_y_2 >= 0)
     #solver.add(Platos_thalamou % 10 == 0)
@@ -89,64 +98,112 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     # Όρια από το Στήριγμα
 
     solver.add(Platos_thalamou <= Platos_freatiou - Apostasi_thalamou_odhgou - Apostasi_toixou_odhgou_x - Apostasi_thalamou_toixou_x)
-    solver.add(Vathos_Thalamou <= Vathos_freatiou - Apostasi_thalamou_toixou_y - Apostasi_lampa_y)
+    solver.add(Vathos_Thalamou == Vathos_freatiou - Apostasi_thalamou_toixou_y - Apostasi_lampa_y)
     solver.add(Vathos_freatiou == Anoigma_odhgwn_const + muth_odhgou_door + muth_odhgou_opposite + Apostasi_toixou_odhgou_y_1 + Apostasi_toixou_odhgou_y_2 + pahos_sthrigmatos_door + pahos_sthrigmatos_opposite)
 
+    threshold = 190.0
+    combined_apostasi_semi = (Vathos_freatiou - Anoigma_odhgwn_const)/2
+    combined_apostasi_auto = (Vathos_freatiou - Anoigma_odhgwn_const - Pahos_portas)/2
     if DOOR_TYPE == 'Αυτόματη':
         required_opening = CO_portas
         #solver.add(required_opening <= Platos_freatiou)
+        #if 1270 <= Vathos_freatiou <= 1313 and Tupos_Anoigmatos == 'Πλαϊνό' and current_inputs.get('scenario') != 'fixed_area' and Pahos_portas == 233:
+            #solver.add(Anoigma_odhgwn_const == 650)
+        #if Vathos_freatiou <= 1220 and Tupos_Anoigmatos == 'Πλαϊνό' and current_inputs.get('scenario') != 'fixed_area' and Pahos_portas == 233:
+            #solver.add(combined_apostasi_auto <= 190.0)
+        #if Vathos_freatiou < 1263 and Vathos_freatiou != 1262 and Tupos_Anoigmatos == 'Πλαϊνό' and current_inputs.get('scenario') != 'fixed_area' and Pahos_portas == 233:
+            #solver.add(combined_apostasi_auto <= 190.0)
+        #if Vathos_freatiou == 1262 and Tupos_Anoigmatos == 'Πλαϊνό' and current_inputs.get('scenario') != 'fixed_area' and Pahos_portas == 233:
+           # solver.add(Apostasi_thalamou_toixou_y >= 80.0)
+        #if Vathos_freatiou == 1263 and Tupos_Anoigmatos == 'Πλαϊνό' and current_inputs.get('scenario') != 'fixed_area' and Pahos_portas == 233:
+            #solver.add(Anoigma_odhgwn_const == 600)
+    
+        
+
+       
+
  
          
         if Tupos_Anoigmatos == 'Πλαϊνό':
-            solver.add(required_opening <= Platos_freatiou - min_tolerance_door - G_portas - 120 - min_tolerance_opposite) # 120 είναι το μήκος της κολώνας
-            #if THE_SASSI_POSITION == 'Αριστερά':
-            solver.add(Apostasi_ar_lampa >= G_portas + min_tolerance_door)
-            solver.add(Apostasi_dek_lampa >= 120 + min_tolerance_opposite) # 120 είναι το ελάχιστο μήκος της κολώνας
+
+            if kateuthinsi_anoigmatos == 'Αριστερά':
+                solver.add(required_opening <= Platos_freatiou - min_tolerance_door_s - G_portas - 120 - min_tolerance_opposite_s) # 120 είναι το μήκος της κολώνας
+                solver.add(Apostasi_ar_lampa >= G_portas + 40)
+                solver.add(Apostasi_dek_lampa >= 120 + 20) # 120 είναι το ελάχιστο μήκος της κολώνας και 20 είναι μία δικλείδα ασφαλείας
+                solver.add(Apostasi_ar_lampa + Apostasi_dek_lampa + required_opening == Platos_freatiou)
+            
+            elif kateuthinsi_anoigmatos == 'Δεξιά':
+                solver.add(required_opening <= Platos_freatiou - min_tolerance_door_s - G_portas - 120 - min_tolerance_opposite_s)
+                solver.add(Apostasi_ar_lampa >= 300)
+                solver.add(Apostasi_dek_lampa >= G_portas + 40)
+                solver.add(Apostasi_ar_lampa + Apostasi_dek_lampa + required_opening == Platos_freatiou)
+                 
 
         else:
-            solver.add(Apostasi_ar_lampa >= G_portas + min_tolerance_door)
-            solver.add(Apostasi_dek_lampa >= G_portas + min_tolerance_opposite) 
+            solver.add(required_opening <= Platos_freatiou - min_tolerance_c - min_tolerance_c - G_portas - G_portas)
+            solver.add(Apostasi_ar_lampa >= G_portas + min_tolerance_c)
+            solver.add(Apostasi_dek_lampa >= G_portas + min_tolerance_c) 
+            solver.add(Apostasi_ar_lampa + Apostasi_dek_lampa + required_opening == Platos_freatiou)
 
             #elif THE_SASSI_POSITION == 'Δεξιά':
                 #solver.add(Apostasi_dek_lampa >= G_portas + min_tolerance_door)
                 #solver.add(Apostasi_ar_lampa >= 120 + min_tolerance_opposite)
 
     
-    else: # Ημιαυτόματη πόρτα
-        required_opening = CO_portas
-        solver.add(Platos_thalamou >= required_opening) 
-        solver.add(required_opening <= Platos_freatiou - Apostasi_ar_lampa - Apostasi_dek_lampa)
-        solver.add(Apostasi_dek_lampa >= 120 + min_tolerance_opposite)
-        solver.add(Apostasi_ar_lampa >= 120 + min_tolerance_door)
-        
-        
 
+
+    else: # Ημιαυτόματη πόρτα
+        lampa_semi_diff_ar = Apostasi_ar_lampa - 300
+        lampa_semi_diff_dek = Apostasi_dek_lampa - 100
+        lampa_semi_diff = lampa_semi_diff_ar - lampa_semi_diff_dek
+        abs_lampa_semi_diff = If(lampa_semi_diff >= 0, lampa_semi_diff, -lampa_semi_diff)
+        required_opening = CO_portas
+        solver.add(required_opening <= Platos_freatiou - min_tolerance_c - min_tolerance_c - 240)
+        solver.add(Platos_freatiou == required_opening + Apostasi_ar_lampa + Apostasi_dek_lampa)
+        solver.add(Apostasi_dek_lampa >= 140)
+        solver.add(Apostasi_ar_lampa >= Apostasi_toixou_odhgou_x + Apostasi_thalamou_odhgou)
+        solver.minimize(abs_lampa_semi_diff)
+     
+
+   
  
     
-    solver.add(Apostasi_thalamou_toixou_y >= CONSTANT_rules['Apostasi_thalamou_toixou_y_min'])
+    solver.add(Apostasi_thalamou_toixou_y >= 100.0)
     solver.add(Apostasi_thalamou_toixou_x >= CONSTANT_rules['Apostasi_thalamou_toixou_x_min'] )
 
     # Emvadon_guro = (Apostasi_thalamou_odhgou + Apostasi_toixou_odhgou_x) * Vathos_freatiou + Apostasi_thalamou_toixou_y * Platos_thalamou + Apostasi_thalamou_toixou_x * Vathos_freatiou + Apostasi_lampa_y * Platos_freatiou
-    threshold = 190.0
-    combined_apostasi_semi = (Vathos_freatiou - Anoigma_odhgwn_const)/2
-    combined_apostasi_auto = (Vathos_freatiou - Anoigma_odhgwn_const - Pahos_portas)/2
+    
    
+    symmetry_diff = Apostasi_toixou_odhgou_y_1 - Apostasi_toixou_odhgou_y_2
     
     
     Is_Y1_SEMI_Large = Bool('Is_Y1_Large')
     solver.add(Is_Y1_SEMI_Large == (combined_apostasi_semi > 190.0))
     
-
+    semi_diff_katw = Apostasi_toixou_odhgou_y_1 - Apostasi_lampa_y
+    semi_diff_panw = Apostasi_toixou_odhgou_y_2 - Apostasi_thalamou_toixou_y
+    semi_diff = Int('semi_diff')
+    solver.add(semi_diff == semi_diff_katw - semi_diff_panw)
+    
     Large_Y_SEMI_Constraints = And(
-    Apostasi_toixou_odhgou_y_1 == Apostasi_toixou_odhgou_y_2,   
+    Apostasi_toixou_odhgou_y_2 >= 90,
+    Apostasi_toixou_odhgou_y_1 >= Apostasi_toixou_odhgou_y_2 + 40,   
+    semi_diff >= -70,
+    semi_diff <= 70,
+    #Apostasi_toixou_odhgou_y_1 <= Apostasi_toixou_odhgou_y_2 + 60,
+    Apostasi_lampa_y >= CONSTANT_rules['LAMPA_Y_SEMI_MIN'],
+    Apostasi_lampa_y <= CONSTANT_rules['LAMPA_Y_SEMI_MAX'],
     pahos_sthrigmatos_door == pahos_sthrigmatos_opposite, 
     muth_odhgou_door == muth_odhgou_opposite,
-    Apostasi_toixou_odhgou_y_1 <= (Vathos_freatiou - Anoigma_odhgwn_const - muth_odhgou_door - muth_odhgou_opposite - 2*pahos_sthrigmatos_door)/2 
+    #Apostasi_toixou_odhgou_y_1 == (Vathos_freatiou - Anoigma_odhgwn_const - muth_odhgou_door - muth_odhgou_opposite - 2*pahos_sthrigmatos_door)/2 
     )
     
 
     Small_Y_SEMI_Constraints = And(
-    Apostasi_toixou_odhgou_y_1 == Apostasi_toixou_odhgou_y_2,
+    symmetry_diff >= -1,
+    symmetry_diff <= 1,
+    Apostasi_lampa_y >= CONSTANT_rules['LAMPA_Y_SEMI_MIN'],
+    Apostasi_lampa_y <= CONSTANT_rules['LAMPA_Y_SEMI_MAX'],
     pahos_sthrigmatos_door == pahos_sthrigmatos_opposite,
     muth_odhgou_door == muth_odhgou_opposite,
     Apostasi_toixou_odhgou_y_1 == 0
@@ -156,39 +213,41 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     Is_Y1_AUTO_Large = Bool('Is_Y1_AUTO_Large')
     solver.add(Is_Y1_AUTO_Large == ((combined_apostasi_auto > 190.0)))
     
-    
+    # για να κεντράρω τα μηχανήματα στο μέσο της καμπίνας στην περίπτωση που το combined_apostasi είναι μεγάλο
     panw_diff_large = Apostasi_toixou_odhgou_y_2 - Apostasi_thalamou_toixou_y
-    katw_diff_large = Apostasi_toixou_odhgou_y_1 - Pahos_portas
+    katw_diff_large = Apostasi_toixou_odhgou_y_1 - Pahos_portas - 50
     balance_diff_large = Int('balance_diff_large')
     solver.add(balance_diff_large == panw_diff_large - katw_diff_large)
 
     Large_Y_AUTO_Constraints = And(
-    Apostasi_toixou_odhgou_y_2 >= 100,
+    Apostasi_toixou_odhgou_y_2 >= 110,
+    Apostasi_lampa_y == Pahos_portas + 50,
     balance_diff_large >= -40,
     balance_diff_large <= 40,
     pahos_sthrigmatos_door == pahos_sthrigmatos_opposite,
     muth_odhgou_door == muth_odhgou_opposite,
     #Apostasi_toixou_odhgou_y_1 <= (Vathos_freatiou - muth_odhgou_door - muth_odhgou_opposite - 2*pahos_sthrigmatos_door)/2,
-    Apostasi_toixou_odhgou_y_1 > (Pahos_portas + 50)
+    Apostasi_toixou_odhgou_y_1 > (Pahos_portas + 60)
 
     )
 
     
-    # για να κεντράρω την πόρτα στην περίπτωση αυτόματης
+    # για να κεντράρω τα μηχανήματα στο μέσο της καμπίνας στην περίπτωση που το combined_apostasi είναι μικρό
     panw_diff_small = pahos_sthrigmatos_opposite - Apostasi_thalamou_toixou_y 
-    katw_diff_small = Apostasi_toixou_odhgou_y_1 + 40 - Pahos_portas
+    katw_diff_small = Apostasi_toixou_odhgou_y_1 + pahos_sthrigmatos_door - Pahos_portas - 50
     balance_diff_small = Int('balance_diff_small')
     solver.add(balance_diff_small == panw_diff_small - katw_diff_small)
     
     
     Small_Y_AUTO_Constraints = And(
     Apostasi_toixou_odhgou_y_2 == 0,
+    Apostasi_lampa_y == Pahos_portas + 50,
     #panw_diff >= katw_diff + 50,
-    balance_diff_small >= -40,
-    balance_diff_small <= 40,
+    balance_diff_small >= -50,
+    balance_diff_small <= 50,
     Apostasi_toixou_odhgou_y_1 == (Vathos_freatiou - Anoigma_odhgwn_const - muth_odhgou_door - muth_odhgou_opposite - pahos_sthrigmatos_opposite - pahos_sthrigmatos_door),
     #Apostasi_toixou_odhgou_y_2 <= (Vathos_freatiou - Anoigma_odhgwn_const - muth_odhgou_door - muth_odhgou_opposite - pahos_sthrigmatos_opposite - pahos_sthrigmatos_door),
-    Apostasi_toixou_odhgou_y_1 > (Pahos_portas + 60)
+    Apostasi_toixou_odhgou_y_1 > (Pahos_portas + 55)
    
 
     )
@@ -196,13 +255,14 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     
     
     if DOOR_TYPE == 'Ημιαυτόματη':
-        solver.add(Apostasi_lampa_y >= CONSTANT_rules['LAMPA_Y_SEMI_MIN'])
-        solver.add(Apostasi_lampa_y <= CONSTANT_rules['LAMPA_Y_SEMI_MAX'])
-
         solver.add(Implies(Is_Y1_SEMI_Large, Large_Y_SEMI_Constraints))
         solver.add(Implies(Not(Is_Y1_SEMI_Large), Small_Y_SEMI_Constraints))
     elif DOOR_TYPE == 'Αυτόματη':
-        solver.add(Apostasi_lampa_y >= Pahos_portas + CONSTANT_rules['LAMPA_Y_AUTO'])
+        
 
         solver.add(Implies(Is_Y1_AUTO_Large, Large_Y_AUTO_Constraints))
         solver.add(Implies(Not(Is_Y1_AUTO_Large), Small_Y_AUTO_Constraints))
+        
+
+    
+
