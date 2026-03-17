@@ -1,0 +1,109 @@
+if __name__ == "__main__":
+    print("Καλωσήρθατε στον σχεδιαστή ανελκυστήρων!")
+    print("Παρακαλώ εισάγετε τις απαιτούμενες διαστάσεις και προδιαγραφές.")
+
+
+    # Αρχικοποίηση για αποφυγή NameError
+    arithmos_fyllon = None
+    tupos_anoigmatos = None
+    
+
+    try:
+      platos_freatiou = int(input("  > Εισάγετε Πλάτος Φρεατίου (mm): "))
+      vathos_freatiou = int(input("  > Εισάγετε Βάθος Φρεατίου (mm): "))
+      rated_weight = int(input("  > Εισάγετε Ονομαστικό Βάρος (kg): "))
+      elevator_speed = float(input("  > Εισάγετε Ταχύτητα Ανελκυστήρα (m/s): "))
+      anartisi_sasi = int(input("  > Εισάγετε Αναλογία Ανάρτησης: "))
+      apovaro = int(input("  > Εισάγετε Απόβαρο (kg): "))
+      vathos_puthmena = int(input("  > Εισάγετε Βάθος Πυθμένα (mm): "))
+      ipsos_tel_orofou = int(input("  > Εισάγετε Ύψος Τελικού Ορόφου (mm): "))
+      yliko_freatiou = input("  > Εισάγετε Υλικό Φρεατίου: ")
+      tupos_portas = input("  > Εισάγεται Τύπο Πόρτας: ")
+      thesi_sassi = input("  > Θέση Σασί (Αριστερά/Δεξιά/Πίσω): ")
+      anoigma_portas = int(input("  > Εισάγετε Άνοιγμα Πόρτας (mm): "))
+      
+      if thesi_sassi not in ['Αριστερά', 'Δεξιά', 'Πίσω']:
+          print("\nΣΦΑΛΜΑ: Η θέση Σασί πρέπει να είναι 'Αριστερά', 'Δεξιά' ή 'Πίσω'.")
+          exit()
+
+      if tupos_portas == 'Αυτόματη':
+        arithmos_fyllon = int(input("  > Αριθμός φύλλων πόρτας (2/3/4): "))
+        tupos_anoigmatos = input("  > Τύπος ανοίγματος (Κεντρικό/Πλαϊνό): ")
+    
+    except ValueError: 
+        print("\nΣΦΑΛΜΑ: Παρακαλώ εισάγετε μόνο αριθμούς για τις διαστάσεις.") 
+        exit()
+
+
+    user_inputs_test = {
+        'shaft_width': platos_freatiou,
+        'shaft_depth': vathos_freatiou,
+        'thesi_sassi': 'side' if thesi_sassi in ['Αριστερά', 'Δεξιά'] else 'rear',
+        'q_load': rated_weight,
+        'p_weight': apovaro,
+        'door_id': 1  # Προσωρινό ID για τη δοκιμή
+    }
+
+
+    results = find_optimal_design(user_inputs_test)
+    print("\n--- ΑΠΟΤΕΛΕΣΜΑΤΑ ΣΧΕΔΙΑΣΜΟΥ ---")
+    print(results) 
+
+
+ΑΦΑΙΡΕΘΗΚΕ ΑΠΟ ΤΗΝ SOLVE ΚΑΙ ΠΡΟΣΤΕΘΗΚΕ ΠΡΟΣΑΡΜΟΣΜΕΝΟ ΣΤΗΝ FIND OPTIMAL DESIGN
+    if thesi_sassi == 'Πίσω':
+    
+        
+        APOSTASI_X_CRITERIA_REAR = (Platos_freatiou - Anoigma_odhgwn) / 2 
+
+    
+        if APOSTASI_X_CRITERIA_REAR >= threshold:
+            DEKSIA_SIDE_BRACKET = normal_bracket_data
+            ARISTERA_SIDE_BRACKET = normal_bracket_data
+        else:
+            DEKSIA_SIDE_BRACKET = wall_bracket_data
+            ARISTERA_SIDE_BRACKET = wall_bracket_data
+    
+        if DOOR_TYPE == 'Αυτόματη':
+            PAHOS_PORTAS_CONST = PAHOS_PORTAS_CONST_DB
+        else:
+            PAHOS_PORTAS_CONST = 0
+    
+   
+    else:
+
+
+        if normal_bracket_data:
+            if DOOR_TYPE == 'Ημιαυτόματη' and APOSTASI_Y_CRITERIA >= threshold:
+                DOOR_SIDE_BRACKET = normal_bracket_data
+                OPPOSITE_SIDE_BRACKET = normal_bracket_data
+                PAHOS_PORTAS_CONST = 0
+        
+
+            elif DOOR_TYPE == 'Ημιαυτόματη' and APOSTASI_Y_CRITERIA < threshold:
+                DOOR_SIDE_BRACKET = wall_bracket_data
+                OPPOSITE_SIDE_BRACKET = wall_bracket_data
+                PAHOS_PORTAS_CONST = 0
+             
+
+           
+            elif DOOR_TYPE == 'Αυτόματη' and APOSTASI_Y_CRITERIA_AUTOMATH >= threshold:
+                DOOR_SIDE_BRACKET = normal_bracket_data 
+                OPPOSITE_SIDE_BRACKET = normal_bracket_data
+                PAHOS_PORTAS_CONST = PAHOS_PORTAS_CONST_DB
+            
+
+        
+            elif DOOR_TYPE == 'Αυτόματη' and APOSTASI_Y_CRITERIA_AUTOMATH < threshold:
+                DOOR_SIDE_BRACKET = normal_bracket_data
+                OPPOSITE_SIDE_BRACKET = wall_bracket_data
+                PAHOS_PORTAS_CONST = PAHOS_PORTAS_CONST_DB
+            
+
+    if thesi_sassi == 'Πίσω':
+        if DEKSIA_SIDE_BRACKET is None or ARISTERA_SIDE_BRACKET is None:
+            return {"status": "unsat", "causes": ["No suitable Rear Brackets found"]}
+    else:
+        if DOOR_SIDE_BRACKET is None or OPPOSITE_SIDE_BRACKET is None:
+            return {"status": "unsat", "causes": ["No suitable Side Brackets found"]}
+    

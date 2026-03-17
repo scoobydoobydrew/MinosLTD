@@ -1,0 +1,17 @@
+import math
+
+def safe_val(var):
+    evaluated = model.evaluate(var)
+    if str(evaluated) == str(var):
+        return "0"
+    try:
+        # Μετατροπή σε ακέραιο (integer)
+        val = int(float(evaluated.as_decimal(2).replace('?', '')))
+        
+        # Στρογγυλοποίηση προς τα κάτω στην πλησιέστερη δεκάδα
+        # Π.χ. 1408 // 10 = 140 -> 140 * 10 = 1400
+        rounded_val = (val // 10) * 10
+        
+        return str(rounded_val)
+    except:
+        return str(evaluated)
