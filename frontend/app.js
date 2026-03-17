@@ -407,9 +407,9 @@ function drawElevatorSVG(inputs, data) {
         svg += `<line x1="${dimX_internal}" y1="${cabinFrontY}" x2="${dimX_internal}" y2="${sD}" stroke="white" stroke-width="1" />`;
         svg += drawHorizTick(cabinFrontY) + drawHorizTick(cabinDoorY) + drawHorizTick(cabinDoorY + seal) + drawHorizTick(landingDoorY) + drawHorizTick(sD);       
         
-        // ==============================================================
+        // =============================================================
         // FIX ΓΙΑ ΤΟ ΑΝΑΠΟΔΟ ΚΕΙΜΕΝΟ ΣΤΟ ΔΕΞΙ ΣΑΣΙ (MIRROR)
-        // ==============================================================
+        // =============================================================
         
         // ΤΩΡΑ χρησιμοποιούμε τη ΣΩΣΤΗ μεταβλητή (inputs.real_chassis)
         const isRightChassis = (inputs.real_chassis === 'right');
