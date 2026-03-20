@@ -42,7 +42,10 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     min_tolerance_opposite_s = 0.0
     min_tolerance_c = 40.0
     anoigma_portas = current_inputs.get('Anoigma_Portas')
-    cabin_doors = current_inputs.get('Arithos_Portwn')
+    cabin_doors = current_inputs.get('Arithmos_Portwn')
+    second_door_pos = current_inputs.get('Thesi_Deuteris_Portas')
+    dir_first_door = current_inputs.get('Kateuthinsi_anoigmatos')
+    dir_second_door = current_inputs.get('Kateuthinsi_Deuteris_Portas')
     
     solver.add(Anoigma_odhgwn_const <= Platos_thalamou)
 
@@ -72,9 +75,23 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     muth_odhgou_aristera = float(odhgoi_data['h1'])
     pahos_sthrigmatos_rear = pahos_sthrigmatos_rear 
     
+    
+    # gia kentrarisma sthrigmatwn sthn kampina
+    symmetry_diff_1 = Apostasi_toixou_odhgou_x_ar_rear - Apostasi_thalamou_toixou_ar_rear
+    abs_1 = If(symmetry_diff_1 >= 0, symmetry_diff_1, -symmetry_diff_1)
+
+    symmetry_diff_2 = Apostasi_toixou_odhgou_x_dek_rear - Apostasi_thalamou_toixou_dek_rear
+    abs_2 = If(symmetry_diff_2 >=0 , symmetry_diff_2, -symmetry_diff_2)
+
+    symmetry_diff_3 = abs_2 - abs_1
+    abs_3 = If(symmetry_diff_3 >= 0, symmetry_diff_3, -symmetry_diff_3)
+    solver.minimize(abs_3)
+
+    solver.add(Apostasi_toixou_odhgou_x_ar_rear >= 90)
+    solver.add(Apostasi_toixou_odhgou_x_dek_rear >= 90)
+
 
     
-    symmetry_diff = Apostasi_toixou_odhgou_x_ar_rear - Apostasi_toixou_odhgou_x_dek_rear
     
     MIN_DGC = sassi_data['Distance_guiderail_cabin_min']
     MAX_DGC = sassi_data['Distance_Guiderail_cabin']
@@ -96,10 +113,10 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     solver.add(Platos_freatiou == Anoigma_odhgwn_const + muth_odhgou_aristera + muth_odhgou_dek + Apostasi_toixou_odhgou_x_ar_rear + Apostasi_toixou_odhgou_x_dek_rear + 2*pahos_sthrigmatos_rear)
     solver.add(Apostasi_thalamou_toixou_ar_rear >= CONSTANT_rules['Apostasi_thalamou_toixou_x_ar_min'] )
     solver.add(Apostasi_thalamou_toixou_dek_rear >= CONSTANT_rules['Apostasi_thalamou_toixou_x_dek_min'] )
-    solver.add(symmetry_diff >= -1)
-    solver.add(symmetry_diff <= 1)
-    solver.add(Apostasi_thalamou_toixou_ar_rear == Apostasi_thalamou_toixou_dek_rear)
-
+    
+    
+    if cabin_doors == '1':
+        solver.add(Apostasi_thalamou_toixou_ar_rear == Apostasi_thalamou_toixou_dek_rear)
 
     
 
@@ -142,6 +159,42 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
         solver.add(Apostasi_dek_lampa >= 120.0)
         solver.add(Apostasi_lampa_y >= CONSTANT_rules['LAMPA_Y_SEMI_MIN'])
         solver.add(Apostasi_lampa_y <= CONSTANT_rules['LAMPA_Y_SEMI_MAX'])
+
+    if cabin_doors == '2_gwniako':
+        
+        if DOOR_TYPE == 'Αυτόματη':
+            if second_door_pos == 'left' and dir_first_door == 'Αριστερά' and dir_second_door == 'panw':
+                solver.add(Apostasi_lampa_y + CO_portas + G_portas + 40.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_ar_rear == Pahos_portas + 50.0)
+                solver.add(Apostasi_toixou_odhgou_x_ar_rear >= Pahos_portas + 50.0)
+
+            elif second_door_pos == 'left' and dir_first_door == 'Αριστερά' and dir_second_door == 'katw':
+                solver.add(300 + CO_portas + G_portas + 40.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_ar_rear == Pahos_portas + 50.0)
+                solver.add(Apostasi_toixou_odhgou_x_ar_rear >= Pahos_portas + 50.0)
+
+            elif second_door_pos == 'right' and dir_first_door == 'Δεξιά' and dir_second_door == 'panw':
+                solver.add(Apostasi_lampa_y + CO_portas + G_portas + 40.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_dek_rear == Pahos_portas + 50.0)
+                solver.add(Apostasi_toixou_odhgou_x_dek_rear >= Pahos_portas + 50.0)
+
+            elif second_door_pos == 'right' and dir_first_door == 'Αριστερά' and dir_second_door == 'katw':
+                solver.add(300 + CO_portas + G_portas + 40.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_dek_rear == Pahos_portas + 50.0)
+                solver.add(Apostasi_toixou_odhgou_x_dek_rear >= Pahos_portas + 50.0)
+
+
+
+                
+
+            
+        elif DOOR_TYPE == 'Ημιαυτόματη':
+            if second_door_pos == 'left':
+                solver.add(Apostasi_thalamou_toixou_ar_rear >= 120.0)
+                solver.add(Apostasi_thalamou_toixou_ar_rear <= 200.0)
+            else:
+                solver.add(Apostasi_thalamou_toixou_dek_rear >= 120.0)
+                solver.add(Apostasi_thalamou_toixou_dek_rear <= 200.0)
 
 
     

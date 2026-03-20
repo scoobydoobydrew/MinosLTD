@@ -20,6 +20,9 @@ class ElevatorRequest(BaseModel):
     tupos_anoigmatos: Optional[str] = None
     kateuthinsi_anoigmatos: Optional[str] = None
     cabin_doors : Optional[str] = None
+    thesi_second_door : Optional[str] = None
+    dir_second_door : Optional[str] = None
+
 
 # 2. ΡΥΘΜΙΣΗ CORS
 app.add_middleware(

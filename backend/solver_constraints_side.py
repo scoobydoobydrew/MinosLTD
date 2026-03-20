@@ -175,6 +175,7 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
         
         if DOOR_TYPE == 'Αυτόματη':
             solver.add(Apostasi_thalamou_toixou_y == Pahos_portas + 50.0)
+            solver.add(Apostasi_toixou_odhgou_y_2 >= Pahos_portas + 50.0)
             
         else:
             solver.add(Apostasi_thalamou_toixou_y >= 120.0)

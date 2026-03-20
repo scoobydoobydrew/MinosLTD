@@ -51,7 +51,9 @@ def find_optimal_design(data_from_api):
         'Arithmos_Fyllon': float(leaf_input) if leaf_input is not None else (1.0 if door_type == 'Ημιαυτόματη' else 2.0),
         'Tupos_Anoigmatos': data_from_api.get('tupos_anoigmatos'),
         'Kateuthinsi_anoigmatos': data_from_api.get('kateuthinsi_anoigmatos'),
-        'Arithmos_Portwn': data_from_api.get('cabin_doors')
+        'Arithmos_Portwn': data_from_api.get('cabin_doors'),
+        'Thesi_Deuteris_Portas': data_from_api.get('thesi_second_door'),
+        'Kateuthinsi_Deuteris_Portas': data_from_api.get('dir_second_door')
     }
 
    
