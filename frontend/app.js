@@ -6,6 +6,30 @@ function updateDoorLogic() {
     const openingDirection = document.getElementById('kateuthinsiAnoigmatos');
     const chassisPosition = document.getElementById('thesi_sassi').value; // ΝΕΟ: Ελέγχουμε και το σασί
 
+    const cabinDoorsSelect = document.getElementById('cabinDoors');
+    const currentCabinDoorsVal = cabinDoorsSelect.value;
+    if (chassisPosition === 'rear') {
+        // Αν το σασί είναι Πίσω, επιτρέπουμε μόνο Απλή ή Γωνιακή (2_adjacent)
+        cabinDoorsSelect.innerHTML = `
+            <option value="1">1 Πόρτα</option>
+            <option value="2_gwniako">2 Πόρτες (γωνιακό)</option>
+        `;
+    } else {
+        
+        cabinDoorsSelect.innerHTML = `
+            <option value="1">1 Πόρτα</option>
+            <option value="2_opposite">2 Πόρτες (διαμπερές)</option>
+        `;
+    }
+
+    // Ελέγχουμε αν η παλιά επιλογή υπάρχει ακόμα στις νέες επιλογές. Αν όχι, το γυρνάμε στο "1"
+    const optionExists = Array.from(cabinDoorsSelect.options).some(opt => opt.value === currentCabinDoorsVal);
+    if (optionExists) {
+        cabinDoorsSelect.value = currentCabinDoorsVal;
+    } else {
+        cabinDoorsSelect.value = "1";
+    }
+
     if (doorType === 'semi_automatic') {
         // ΗΜΙΑΥΤΟΜΑΤΗ
         doorLeaves.innerHTML = '<option value="1">1 Φύλλο</option>';
@@ -123,6 +147,7 @@ function populateDoorOpenings() {
 document.getElementById('doortype').addEventListener('change', updateDoorLogic); 
 document.getElementById('doorLeaves').addEventListener('change', updateDoorLogic);
 document.getElementById('tuposAnoigmatos').addEventListener('change', updateDoorLogic);
+document.getElementById('thesi_sassi').addEventListener('change', updateDoorLogic);
 
 
 
@@ -157,7 +182,8 @@ async function solveElevator() {
         arithmos_fyllon: parseInt(document.getElementById('doorLeaves').value) || 1,
         anoigma_portas: parseInt(document.getElementById('doorOpening').value) || 0,
         tupos_anoigmatos: document.getElementById('tuposAnoigmatos').value,
-        kateuthinsi_anoigmatos: apiDoorDir
+        kateuthinsi_anoigmatos: apiDoorDir,
+        cabin_doors: document.getElementById('cabinDoors').value
     };
 
     data.real_chassis = actualChassis;
@@ -271,19 +297,41 @@ function drawElevatorSVG(inputs, data) {
     // ==============================================================
     // --- 2. ΤΟΙΧΟΙ & ΦΡΕΑΤΙΟ ---
     // ==============================================================
-    const wallPath = `
-        M ${-t} ${sD} 
-        L ${-t} ${-t} 
-        L ${sW + t} ${-t} 
-        L ${sW + t} ${sD} 
-        L ${sW} ${sD} 
-        L ${sW} 0 
-        L 0 0 
-        L 0 ${sD} 
-        Z
-    `;
+    const isThroughCar = (inputs.cabin_doors === '2_opposite');
+
+    let wallPath = ``;
+    if (isThroughCar) {
+        // Αν έχουμε 2 πόρτες (διαμπερές), "σπάμε" το Π του φρεατίου σε δύο κάθετους τοίχους (αριστερά και δεξιά)
+        // για να αφήσουμε όλο το πάνω μέρος ελεύθερο.
+        wallPath = `
+            M ${-t} ${sD} 
+            L ${-t} 0 
+            L 0 0 
+            L 0 ${sD} 
+            Z
+            M ${sW} ${sD} 
+            L ${sW} 0 
+            L ${sW + t} 0 
+            L ${sW + t} ${sD} 
+            Z
+        `;
+    } else {
+        // Κανονικό φρεάτιο 1 πόρτας (ένα συνεχόμενο Π που κλείνει την πλάτη)
+        wallPath = `
+            M ${-t} ${sD} 
+            L ${-t} ${-t} 
+            L ${sW + t} ${-t} 
+            L ${sW + t} ${sD} 
+            L ${sW} ${sD} 
+            L ${sW} 0 
+            L 0 0 
+            L 0 ${sD} 
+            Z
+        `;
+    }
     svg += `<path d="${wallPath}" fill="url(#concretePattern)" stroke="#64748b" stroke-width="3" stroke-linejoin="round" />`;
     
+    // --- ΜΠΡΟΣΤΙΝΟΣ ΤΟΙΧΟΣ & ΚΟΛΩΝΕΣ (ΥΠΑΡΧΟΥΝ ΠΑΝΤΑ) ---
     const pillarW = 120; 
     const pillarH = 60;  
     const pillarY = sD; 
@@ -299,14 +347,24 @@ function drawElevatorSVG(inputs, data) {
     const rightWallW = sW - rightWallX;
     if (rightWallW > 0) svg += `<rect x="${rightWallX}" y="${frontWallY}" width="${rightWallW}" height="${frontWallH}" fill="url(#concretePattern)" stroke="#64748b" stroke-width="3" />`;
 
+    // --- ΠΙΣΩ ΤΟΙΧΟΣ & ΚΟΛΩΝΕΣ (ΜΟΝΟ ΣΤΟ ΔΙΑΜΠΕΡΕΣ) ---
+    if (isThroughCar) {
+        // Ζωγραφίζουμε το καθρέφτισμα του μπροστινού τοίχου ψηλά, στο Υ = 0 και Υ = -t
+        const backWallY = -t;
+        const backPillarY = -pillarH; // Οι κολώνες βγαίνουν προς τα έξω (πάνω)
+        
+        if (leftWallW > 0) svg += `<rect x="0" y="${backWallY}" width="${leftWallW}" height="${frontWallH}" fill="url(#concretePattern)" stroke="#64748b" stroke-width="3" />`;
+        svg += `<rect x="${doorStartX - pillarW}" y="${backPillarY}" width="${pillarW}" height="${pillarH}" fill="url(#pillarPattern)" stroke="#475569" stroke-width="2" />`;
+        svg += `<rect x="${doorStartX + CO}" y="${backPillarY}" width="${pillarW}" height="${pillarH}" fill="url(#pillarPattern)" stroke="#475569" stroke-width="2" />`;
+        
+        if (rightWallW > 0) svg += `<rect x="${rightWallX}" y="${backWallY}" width="${rightWallW}" height="${frontWallH}" fill="url(#concretePattern)" stroke="#64748b" stroke-width="3" />`;
+    }
     // ==============================================================
-    // --- 3. ΠΟΡΤΑ ---
+    // --- 3. ΠΟΡΤΑ (ΜΠΡΟΣΤΑ & ΠΙΣΩ) ---
     // ==============================================================
     const doorType = inputs.tupos_portas || 'Αυτόματη';
     const numLeaves = parseInt(inputs.arithmos_fyllon) || 2;
     const isCentral = inputs.tuposAnoigmatos === "Κεντρικό" || inputs.tupos_anoigmatos === "Κεντρικό";
-    
-    // Ελέγχουμε την κατεύθυνση ανοίγματος από το API (Θεωρούμε ότι ο κώδικάς σου ήταν το "Αριστερά")
     const isLeftOpen = (inputs.kateuthinsi_anoigmatos === "Αριστερά"); 
 
     const doorCode = isCentral ? 'pC' : 'pS';
@@ -315,132 +373,139 @@ function drawElevatorSVG(inputs, data) {
     const seal = sealDict[doorKey] || 90; 
     const numRails = isCentral ? (numLeaves / 2) : numLeaves;
     const railThk = seal / numRails; 
-    const cabinFrontY = cY + cD; 
-    const endX = doorStartX + CO;
     
-    if (doorType === 'Αυτόματη') {
-        const landingDoorY = sD - seal;       
-        const cabinDoorY = landingDoorY - 35 - seal; 
-        const visualCabinAir = cabinDoorY - cabinFrontY; 
+    const isRightChassis = (inputs.real_chassis === 'right');
+    const hasTwoDoors = (inputs.cabin_doors === '2_opposite');
 
-        // ΓΡΑΜΜΕΣ ΚΑΣΑΣ
-        svg += `<line x1="${doorStartX}" y1="${cabinFrontY}" x2="${doorStartX}" y2="${cabinDoorY}" stroke="#64748b" stroke-width="2" />`;
-        svg += `<line x1="${endX}" y1="${cabinFrontY}" x2="${endX}" y2="${cabinDoorY}" stroke="#64748b" stroke-width="2" />`;
-        svg += `<rect x="${doorStartX}" y="${cabinFrontY}" width="${CO}" height="${cabinDoorY - cabinFrontY}" fill="#1e293b" opacity="0.4" />`;
-
-        const doorsToDraw = [
-            { yBase: cabinDoorY, label: "Cabin Door" }, 
-            { yBase: landingDoorY, label: "Landing Door" }
-        ];
-
-        doorsToDraw.forEach((doorSet, setIndex) => {
-            const baseY = doorSet.yBase;
-            for (let i = 0; i < numRails; i++) {
-                const railY = baseY + (i * railThk);
-                let railX, railW;
-
-                if (isCentral) {
-                    // --- ΚΕΝΤΡΙΚΟ ΑΝΟΙΓΜΑ ---
-                    railX = doorStartX - G;
-                    railW = G + CO + G;
-                    svg += `<rect x="${railX}" y="${railY}" width="${railW}" height="${railThk}" fill="#1f2937" stroke="#475569" stroke-width="1" />`;
-                    svg += `<line x1="${railX}" y1="${railY + railThk * 0.5}" x2="${railX + railW}" y2="${railY + railThk * 0.5}" stroke="#475569" stroke-width="1.5" />`;
-                    const leafW = CO / 2;
-                    svg += `<rect x="${doorStartX}" y="${railY + 2}" width="${leafW}" height="${railThk - 4}" fill="url(#doorHatch)" stroke="#677b96" stroke-width="1.5" />`;
-                    svg += `<rect x="${doorStartX + leafW}" y="${railY + 2}" width="${leafW}" height="${railThk - 4}" fill="url(#doorHatch)" stroke="#94a3b8" stroke-width="1.5" />`;
-                    svg += `<rect x="${doorStartX + (leafW/2) - 15}" y="${railY + (railThk/2) - 2}" width="30" height="4" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
-                    svg += `<rect x="${doorStartX + leafW + (leafW/2) - 15}" y="${railY + (railThk/2) - 2}" width="30" height="4" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
-                
-                } else {
-                    // --- ΠΛΑΪΝΟ ΑΝΟΙΓΜΑ (ΜΑΘΗΜΑΤΙΚΟΣ ΔΙΑΧΩΡΙΣΜΟΣ ΑΡΙΣΤΕΡΑ/ΔΕΞΙΑ) ---
-                    let leafIndex;
-                    
-                    if (isLeftOpen) {
-                        // ΑΡΙΣΤΕΡΟ ΑΝΟΙΓΜΑ (Ο χώρος G είναι αριστερά)
-                        railX = doorStartX - G;
-                        railW = G + CO;
-                        leafIndex = (setIndex === 0) ? i : (numRails - 1 - i);
-                    } else {
-                        // ΔΕΞΙΟ ΑΝΟΙΓΜΑ (Ο χώρος G είναι δεξιά)
-                        railX = doorStartX;
-                        railW = CO + G;
-                        // Αντιστρέφουμε τη σειρά των φύλλων στις ράγες
-                        leafIndex = (setIndex === 0) ? (numRails - 1 - i) : i; 
-                    }
-
-                    svg += `<rect x="${railX}" y="${railY}" width="${railW}" height="${railThk}" fill="#1f2937" stroke="#475569" stroke-width="1" />`;
-                    svg += `<line x1="${railX}" y1="${railY + railThk * 0.5}" x2="${railX + railW}" y2="${railY + railThk * 0.5}" stroke="#475569" stroke-width="1.5" />`;
-                    
-                    const leafW = CO / numLeaves;
-                    const leafX = doorStartX + (leafIndex * leafW);
-                    
-                    svg += `<rect x="${leafX}" y="${railY + 2}" width="${leafW}" height="${railThk - 4}" fill="url(#doorHatch)" stroke="#5d6d85" stroke-width="1.5" />`;
-                    svg += `<rect x="${leafX + (leafW/2) - 15}" y="${railY + (railThk/2) - 2}" width="30" height="4" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
-                }
-            }
-        });
-
-        // ==============================================================
-        // --- ΕΣΩΤΕΡΙΚΗ ΔΙΑΣΤΑΣΙΟΛΟΓΗΣΗ ΚΕΝΩΝ ΠΟΡΤΑΣ ---
-        // ==============================================================
-        let dimX_internal, textAnchor, textX;
+    // === Βοηθητική Συνάρτηση που ζωγραφίζει ΜΙΑ πόρτα (μπροστά ή πίσω) ===
+    function drawOneDoor(isFront) {
+        let localSvg = "";
         
-        if (isCentral) {
-            dimX_internal = doorStartX - G - 25;
-            textAnchor = "end";
-            textX = dimX_internal - 12;
+        // --- Ρυθμίσεις Ύψους (Y) ανάλογα με το αν είναι η μπροστινή ή η πίσω πόρτα ---
+        let cFrontY, doorWallY, lDoorY, cDoorY, visualAir;
+        
+        if (isFront) {
+            cFrontY = cY + cD; // Η φάτσα της καμπίνας (κάτω μέρος)
+            doorWallY = sD;    // Ο μπροστινός τοίχος του φρεατίου (τέρμα κάτω)
+            lDoorY = doorWallY - seal; // Πόρτα ορόφου
+            cDoorY = lDoorY - 35 - seal; // Πόρτα καμπίνας
+            visualAir = cDoorY - cFrontY; // Το "50άρι" κενό (αέρας)
         } else {
-            if (isLeftOpen) {
-                // Στο Αριστερό άνοιγμα ο μηχανισμός είναι αριστερά, άρα βάζουμε τη διάσταση δεξιά
-                dimX_internal = doorStartX + CO + 25;
-                textAnchor = "start";
-                textX = dimX_internal + 16;
-            } else {
-                // Στο Δεξί άνοιγμα ο μηχανισμός είναι δεξιά, άρα βάζουμε τη διάσταση αριστερά
-                dimX_internal = doorStartX - 25;
-                textAnchor = "end";
-                textX = dimX_internal - 12;
+            cFrontY = cY; // Η πλάτη της καμπίνας (πάνω μέρος)
+            doorWallY = 0; // Ο πίσω τοίχος του φρεατίου (τέρμα πάνω)
+            lDoorY = doorWallY; // Η πίσω πόρτα ορόφου κολλάει στο Υ=0
+            cDoorY = lDoorY + seal + 35; // Η πίσω πόρτα καμπίνας είναι πιο κάτω
+            visualAir = cFrontY - (cDoorY + seal); 
+        }
+
+        const endX = doorStartX + CO;
+
+        if (doorType === 'Αυτόματη') {
+            // ΓΡΑΜΜΕΣ ΚΑΣΑΣ / ΚΕΝΟ
+            localSvg += `<line x1="${doorStartX}" y1="${cFrontY}" x2="${doorStartX}" y2="${isFront ? cDoorY : cDoorY + seal}" stroke="#64748b" stroke-width="2" />`;
+            localSvg += `<line x1="${endX}" y1="${cFrontY}" x2="${endX}" y2="${isFront ? cDoorY : cDoorY + seal}" stroke="#64748b" stroke-width="2" />`;
+            localSvg += `<rect x="${doorStartX}" y="${isFront ? cFrontY : cDoorY + seal}" width="${CO}" height="${Math.abs(cFrontY - (isFront ? cDoorY : cDoorY + seal))}" fill="#1e293b" opacity="0.4" />`;
+
+            const doorsToDraw = [
+                { yBase: cDoorY, label: "Cabin Door" }, 
+                { yBase: lDoorY, label: "Landing Door" }
+            ];
+
+            doorsToDraw.forEach((doorSet, setIndex) => {
+                const baseY = doorSet.yBase;
+                for (let i = 0; i < numRails; i++) {
+                    const railY = baseY + (i * railThk);
+                    let railX, railW;
+
+                    if (isCentral) {
+                        railX = doorStartX - G;
+                        railW = G + CO + G;
+                        localSvg += `<rect x="${railX}" y="${railY}" width="${railW}" height="${railThk}" fill="#1f2937" stroke="#475569" stroke-width="1" />`;
+                        localSvg += `<line x1="${railX}" y1="${railY + railThk * 0.5}" x2="${railX + railW}" y2="${railY + railThk * 0.5}" stroke="#475569" stroke-width="1.5" />`;
+                        const leafW = CO / 2;
+                        localSvg += `<rect x="${doorStartX}" y="${railY + 2}" width="${leafW}" height="${railThk - 4}" fill="url(#doorHatch)" stroke="#677b96" stroke-width="1.5" />`;
+                        localSvg += `<rect x="${doorStartX + leafW}" y="${railY + 2}" width="${leafW}" height="${railThk - 4}" fill="url(#doorHatch)" stroke="#94a3b8" stroke-width="1.5" />`;
+                        localSvg += `<rect x="${doorStartX + (leafW/2) - 15}" y="${railY + (railThk/2) - 2}" width="30" height="4" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
+                        localSvg += `<rect x="${doorStartX + leafW + (leafW/2) - 15}" y="${railY + (railThk/2) - 2}" width="30" height="4" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
+                    } else {
+                        let leafIndex;
+                        if (isLeftOpen) {
+                            railX = doorStartX - G;
+                            railW = G + CO;
+                            leafIndex = (setIndex === 0) ? i : (numRails - 1 - i);
+                        } else {
+                            railX = doorStartX;
+                            railW = CO + G;
+                            leafIndex = (setIndex === 0) ? (numRails - 1 - i) : i; 
+                        }
+
+                        localSvg += `<rect x="${railX}" y="${railY}" width="${railW}" height="${railThk}" fill="#1f2937" stroke="#475569" stroke-width="1" />`;
+                        localSvg += `<line x1="${railX}" y1="${railY + railThk * 0.5}" x2="${railX + railW}" y2="${railY + railThk * 0.5}" stroke="#475569" stroke-width="1.5" />`;
+                        
+                        const leafW = CO / numLeaves;
+                        const leafX = doorStartX + (leafIndex * leafW);
+                        
+                        localSvg += `<rect x="${leafX}" y="${railY + 2}" width="${leafW}" height="${railThk - 4}" fill="url(#doorHatch)" stroke="#5d6d85" stroke-width="1.5" />`;
+                        localSvg += `<rect x="${leafX + (leafW/2) - 15}" y="${railY + (railThk/2) - 2}" width="30" height="4" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
+                    }
+                }
+            });
+
+            // ΕΣΩΤΕΡΙΚΗ ΔΙΑΣΤΑΣΙΟΛΟΓΗΣΗ (Μόνο για την μπροστινή πόρτα, για να μην γεμίσει το σχέδιο νούμερα)
+            if (isFront) {
+                let dimX_internal, textAnchor, textX;
+                if (isCentral) {
+                    dimX_internal = doorStartX - G - 25;
+                    textAnchor = "end"; textX = dimX_internal - 12;
+                } else {
+                    if (isLeftOpen) {
+                        dimX_internal = doorStartX + CO + 25;
+                        textAnchor = "start"; textX = dimX_internal + 16;
+                    } else {
+                        dimX_internal = doorStartX - 25;
+                        textAnchor = "end"; textX = dimX_internal - 12;
+                    }
+                }
+
+                const drawHorizTick = (y) => `<line x1="${dimX_internal - 5}" y1="${y}" x2="${dimX_internal + 5}" y2="${y}" stroke="white" stroke-width="1.5" />`;
+                localSvg += `<line x1="${dimX_internal}" y1="${cFrontY}" x2="${dimX_internal}" y2="${doorWallY}" stroke="white" stroke-width="1" />`;
+                localSvg += drawHorizTick(cFrontY) + drawHorizTick(cDoorY) + drawHorizTick(cDoorY + seal) + drawHorizTick(lDoorY) + drawHorizTick(doorWallY);       
+                
+                const fixX = isRightChassis ? -textX : textX;
+                const fixTransform = isRightChassis ? ` transform="scale(-1, 1)"` : ``;
+                let fixAnchor = textAnchor;
+                if (isRightChassis) { fixAnchor = (textAnchor === "start") ? "end" : "start"; }
+
+                localSvg += `<text x="${fixX}" y="${cFrontY + (visualAir / 2)}" fill="white" font-size="16" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>50</text>`;
+                localSvg += `<text x="${fixX}" y="${cDoorY + (seal / 2)}" fill="#fbbf24" font-size="18" font-weight="bold" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>${seal}</text>`;
+                localSvg += `<text x="${fixX}" y="${lDoorY - 17.5}" fill="white" font-size="16" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>35</text>`;
+                localSvg += `<text x="${fixX}" y="${lDoorY + (seal / 2)}" fill="#fbbf24" font-size="18" font-weight="bold" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>${seal}</text>`;
             }
+
+        } else {
+            // ΗΜΙΑΥΤΟΜΑΤΗ ΠΟΡΤΑ
+            localSvg += `<line x1="${doorStartX}" y1="${cFrontY}" x2="${doorStartX}" y2="${doorWallY}" stroke="#64748b" stroke-width="2" />`;
+            localSvg += `<line x1="${doorStartX + CO}" y1="${cFrontY}" x2="${doorStartX + CO}" y2="${doorWallY}" stroke="#64748b" stroke-width="2" />`;
+            localSvg += `<rect x="${doorStartX}" y="${isFront ? cFrontY : doorWallY}" width="${CO}" height="${Math.abs(doorWallY - cFrontY)}" fill="#1e293b" opacity="0.4" />`;
+
+            const hemiWallY = isFront ? doorWallY : doorWallY - 40; 
+            localSvg += `<rect x="${doorStartX - G}" y="${hemiWallY}" width="${G + CO + G}" height="40" fill="#334155" stroke="#475569" stroke-width="2" />`;
+            localSvg += `<rect x="${doorStartX}" y="${hemiWallY + 5}" width="${CO}" height="30" fill="url(#doorHatch)" stroke="#94a3b8" stroke-width="1.5" />`;
+            localSvg += `<circle cx="${doorStartX + CO - 20}" cy="${hemiWallY + 20}" r="6" fill="#fbbf24" stroke="#d97706" stroke-width="2" />`;
         }
 
-        const drawHorizTick = (y) => `<line x1="${dimX_internal - 5}" y1="${y}" x2="${dimX_internal + 5}" y2="${y}" stroke="white" stroke-width="1.5" />`;
-        svg += `<line x1="${dimX_internal}" y1="${cabinFrontY}" x2="${dimX_internal}" y2="${sD}" stroke="white" stroke-width="1" />`;
-        svg += drawHorizTick(cabinFrontY) + drawHorizTick(cabinDoorY) + drawHorizTick(cabinDoorY + seal) + drawHorizTick(landingDoorY) + drawHorizTick(sD);       
-        
-        // =============================================================
-        // FIX ΓΙΑ ΤΟ ΑΝΑΠΟΔΟ ΚΕΙΜΕΝΟ ΣΤΟ ΔΕΞΙ ΣΑΣΙ (MIRROR)
-        // =============================================================
-        
-        // ΤΩΡΑ χρησιμοποιούμε τη ΣΩΣΤΗ μεταβλητή (inputs.real_chassis)
-        const isRightChassis = (inputs.real_chassis === 'right');
-        
-        const fixX = isRightChassis ? -textX : textX;
-        const fixTransform = isRightChassis ? ` transform="scale(-1, 1)"` : ``;
-        
-        let fixAnchor = textAnchor;
-        if (isRightChassis) {
-            fixAnchor = (textAnchor === "start") ? "end" : "start";
-        }
-
-        // Τυπώνουμε τα νούμερα
-        svg += `<text x="${fixX}" y="${cabinFrontY + (visualCabinAir / 2)}" fill="white" font-size="16" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>50</text>`;
-        svg += `<text x="${fixX}" y="${cabinDoorY + (seal / 2)}" fill="#fbbf24" font-size="18" font-weight="bold" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>${seal}</text>`;
-        svg += `<text x="${fixX}" y="${landingDoorY - 17.5}" fill="white" font-size="16" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>35</text>`;
-        svg += `<text x="${fixX}" y="${landingDoorY + (seal / 2)}" fill="#fbbf24" font-size="18" font-weight="bold" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>${seal}</text>`;
-    } else {
-        // ==============================================================
-        // --- ΗΜΙΑΥΤΟΜΑΤΗ ΠΟΡΤΑ ---
-        // ==============================================================
-        const landingDoorY = sD; 
-        
-        svg += `<line x1="${doorStartX}" y1="${cabinFrontY}" x2="${doorStartX}" y2="${sD}" stroke="#64748b" stroke-width="2" />`;
-        svg += `<line x1="${doorStartX + CO}" y1="${cabinFrontY}" x2="${doorStartX + CO}" y2="${sD}" stroke="#64748b" stroke-width="2" />`;
-        svg += `<rect x="${doorStartX}" y="${cabinFrontY}" width="${CO}" height="${sD - cabinFrontY}" fill="#1e293b" opacity="0.4" />`;
-
-        svg += `<rect x="${doorStartX - G}" y="${landingDoorY}" width="${G + CO + G}" height="40" fill="#334155" stroke="#475569" stroke-width="2" />`;
-        svg += `<rect x="${doorStartX}" y="${landingDoorY + 5}" width="${CO}" height="30" fill="url(#doorHatch)" stroke="#94a3b8" stroke-width="1.5" />`;
-        svg += `<circle cx="${doorStartX + CO - 20}" cy="${landingDoorY + 20}" r="6" fill="#fbbf24" stroke="#d97706" stroke-width="2" />`;
+        return localSvg;
     }
+
+    // --- ΚΛΗΣΗ ΤΗΣ ΣΥΝΑΡΤΗΣΗΣ ---
+    // 1. Ζωγραφίζουμε πάντα την μπροστινή πόρτα
+    svg += drawOneDoor(true);
+
+    // 2. Αν ο χρήστης έχει επιλέξει 2 πόρτες (διαμπερές), ζωγραφίζουμε ΚΑΙ την πίσω
+    if (hasTwoDoors) {
+        svg += drawOneDoor(false);
+    }
+
     // ==============================================================
     // --- 4. ΥΠΟΛΟΓΙΣΜΟΙ ΟΔΗΓΩΝ & ΣΤΗΡΙΓΜΑΤΩΝ (ΑΠΟ ΤΟΥΣ ΤΟΙΧΟΥΣ) ---
     // ==============================================================
