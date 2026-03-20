@@ -53,6 +53,7 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     min_tolerance_c = 40.0 # περίπτωση κεντρικού ανοίγματος (_c = central opening door, ίδια ανοχή και στις δύο πλευρές)
     anoigma_portas = current_inputs.get('Anoigma_Portas')
     kateuthinsi_anoigmatos = current_inputs.get('Kateuthinsi_anoigmatos')
+    cabin_doors = str(current_inputs.get('Arithmos_Portwn'))
 
     solver.add(Anoigma_odhgwn_const <= Vathos_Thalamou)
 
@@ -139,6 +140,9 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
                 solver.add(Apostasi_ar_lampa >= 300)
                 solver.add(Apostasi_dek_lampa >= G_portas + 40)
                 solver.add(Apostasi_ar_lampa + Apostasi_dek_lampa + required_opening == Platos_freatiou)
+            
+
+          
                  
 
         else:
@@ -165,6 +169,19 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
         solver.add(Apostasi_dek_lampa >= 140)
         solver.add(Apostasi_ar_lampa >= Apostasi_toixou_odhgou_x + Apostasi_thalamou_odhgou)
         solver.minimize(abs_lampa_semi_diff)
+
+
+    if cabin_doors == '2_opposite':
+        
+        if DOOR_TYPE == 'Αυτόματη':
+            solver.add(Apostasi_thalamou_toixou_y == Pahos_portas + 50.0)
+            
+        else:
+            solver.add(Apostasi_thalamou_toixou_y >= 120.0)
+            solver.add(Apostasi_thalamou_toixou_y <= 200.0)
+
+        
+        
 
 
     

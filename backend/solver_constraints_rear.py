@@ -42,6 +42,7 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     min_tolerance_opposite_s = 0.0
     min_tolerance_c = 40.0
     anoigma_portas = current_inputs.get('Anoigma_Portas')
+    cabin_doors = current_inputs.get('Arithos_Portwn')
     
     solver.add(Anoigma_odhgwn_const <= Platos_thalamou)
 
@@ -129,6 +130,7 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
 
             #solver.add(Apostasi_ar_lampa + Apostasi_dek_lampa + required_opening == Platos_freatiou)
 
+        
 
 
     

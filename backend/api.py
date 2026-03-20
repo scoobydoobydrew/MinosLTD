@@ -19,6 +19,7 @@ class ElevatorRequest(BaseModel):
     arithmos_fyllon: Optional[int] = None
     tupos_anoigmatos: Optional[str] = None
     kateuthinsi_anoigmatos: Optional[str] = None
+    cabin_doors : Optional[str] = None
 
 # 2. ΡΥΘΜΙΣΗ CORS
 app.add_middleware(

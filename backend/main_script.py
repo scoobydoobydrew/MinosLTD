@@ -50,7 +50,8 @@ def find_optimal_design(data_from_api):
         # Διόρθωση: Αν είναι ημιαυτόματη και δώσεις 1, το κρατάμε. Αν δεν δώσεις τίποτα, βάζουμε 1.0
         'Arithmos_Fyllon': float(leaf_input) if leaf_input is not None else (1.0 if door_type == 'Ημιαυτόματη' else 2.0),
         'Tupos_Anoigmatos': data_from_api.get('tupos_anoigmatos'),
-        'Kateuthinsi_anoigmatos': data_from_api.get('kateuthinsi_anoigmatos')
+        'Kateuthinsi_anoigmatos': data_from_api.get('kateuthinsi_anoigmatos'),
+        'Arithmos_Portwn': data_from_api.get('cabin_doors')
     }
 
    
