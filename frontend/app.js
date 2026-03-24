@@ -489,7 +489,7 @@ function drawElevatorSVG(inputs, data) {
                 if (isCentral) {
                     dimX_internal = doorStartX - G - 25;
                     textAnchor = "end"; textX = dimX_internal - 12;
-                } else {
+        } else {
                     if (isLeftOpen) {
                         dimX_internal = doorStartX + CO + 25;
                         textAnchor = "start"; textX = dimX_internal + 16;
@@ -512,7 +512,7 @@ function drawElevatorSVG(inputs, data) {
                 localSvg += `<text x="${fixX}" y="${cDoorY + (seal / 2)}" fill="#fbbf24" font-size="18" font-weight="bold" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>${seal}</text>`;
                 localSvg += `<text x="${fixX}" y="${lDoorY - 17.5}" fill="white" font-size="16" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>35</text>`;
                 localSvg += `<text x="${fixX}" y="${lDoorY + (seal / 2)}" fill="#fbbf24" font-size="18" font-weight="bold" dominant-baseline="middle" text-anchor="${fixAnchor}"${fixTransform}>${seal}</text>`;
-            }
+                }
 
         } else {
             // ΗΜΙΑΥΤΟΜΑΤΗ ΠΟΡΤΑ
@@ -826,7 +826,7 @@ function drawElevatorSVG(inputs, data) {
         let doorStartY = 0;
         if (isAdjacent) {
             // 20mm αέρας από τις γωνίες της καμπίνας
-            doorStartY = (dir2 === 'panw') ? (cabinFrontY - 20 - CO) : (cY + 20);
+            doorStartY = (dir2 === 'panw') ? (cabinFrontY - 5 - CO) : (cY + 5);
         }
 
         let svg = `<svg viewBox="-250 -250 ${sW + 650} ${sD + 650}" xmlns="http://www.w3.org/2000/svg" style="width:100%; background:#111827; border-radius:12px;">`;
@@ -851,21 +851,67 @@ function drawElevatorSVG(inputs, data) {
             </defs>
         `;
 
-        // ==============================================================
-        // --- 2. ΤΟΙΧΟΙ & ΦΡΕΑΤΙΟ (ΚΑΘΑΡΟ ΠΟΛΥΓΩΝΟ ΜΕ Ή ΧΩΡΙΣ ΤΡΥΠΑ) ---
-        // ==============================================================
-        let wallPath = '';
+    // ==============================================================
+    // --- 2. ΤΟΙΧΟΙ & ΦΡΕΑΤΙΟ (ΔΙΟΡΘΩΣΗ ΣΗΜΕΙΟΥ ΚΟΠΗΣ) ---
+    // ==============================================================
+        const pillarHeight = 120; // Το ύψος της κολώνας που χρησιμοποιείς
+
+        let wallPath = ``;
+
         if (isAdjacent) {
+            const rY_axis_temp = parseFloat(data.Apostasi_toixou_odhgou_y_rear) || 0;
+            const dist_cabin_rail_temp = parseFloat(data.Apostasi_thalamou_odhgou_rear) || 0;
+            const cY_temp = rY_axis_temp + dist_cabin_rail_temp;
+            const cD_temp = parseFloat(data.Vathos_Thalamou) || 0;
+        
+        // Υπολογισμός του Seal (όπως ακριβώς τον έχεις στο Section 4)
+            const currentLeaves = parseInt(inputs.arithmos_fyllon) || 2;
+            const currentIsCentral = inputs.tuposAnoigmatos === "Κεντρικό" || inputs.tupos_anoigmatos === "Κεντρικό";
+            const currentDoorCode = currentIsCentral ? 'pC' : 'pS';
+            const currentDoorKey = currentLeaves + currentDoorCode;
+            const currentSealDict = { "2pC": 54, "4pC": 90, "2pS": 90, "3pS": 135 };
+            const currentSeal = currentSealDict[currentDoorKey];
+
+    
+
+        // ΤΟ ΔΙΟΡΘΩΜΕΝΟ ΣΗΜΕΙΟ:
+        // Προσθέτουμε το currentSeal για να ξέρει ο τοίχος πόσο "βαθιά" είναι η κάσα της 3φυλλης (135mm)
+            let cutPointTop = doorStartY - 120; 
+            let cutPointBottom = doorStartY + CO + 120;
+
+        // Αν δεις ότι πάλι υπάρχει κενό στην 3φυλλη, δοκίμασε να χρησιμοποιήσεις 
+        // το currentSeal στον υπολογισμό αν η κάσα μετακινείται 
+
             if (side2 === 'left') {
-                wallPath = `M 0 ${doorStartY} L 0 0 L ${sW} 0 L ${sW} ${sD} L ${sW+t} ${sD} L ${sW+t} ${-t} L ${-t} ${-t} L ${-t} ${sD} L 0 ${sD} L 0 ${doorStartY+CO} L ${-t} ${doorStartY+CO} L ${-t} ${doorStartY} Z`;
+                wallPath = `
+                    M 0 ${cutPointTop} L 0 0 L ${sW} 0 L ${sW} ${sD} L ${sW+t} ${sD} L ${sW+t} ${-t} L ${-t} ${-t} L ${-t} ${cutPointTop} L 0 ${cutPointTop} Z
+                    M 0 ${cutPointBottom} L ${-t} ${cutPointBottom} L ${-t} ${sD} L 0 ${sD} Z
+                `;
             } else {
-                wallPath = `M ${sW} ${doorStartY} L ${sW} 0 L 0 0 L 0 ${sD} L ${-t} ${sD} L ${-t} ${-t} L ${sW+t} ${-t} L ${sW+t} ${sD} L ${sW} ${sD} L ${sW} ${doorStartY+CO} L ${sW+t} ${doorStartY+CO} L ${sW+t} ${doorStartY} Z`;
+                wallPath = `
+                    M ${sW} ${cutPointTop} L ${sW} 0 L 0 0 L 0 ${sD} L ${-t} ${sD} L ${-t} ${-t} L ${sW+t} ${-t} L ${sW+t} ${cutPointTop} L ${sW} ${cutPointTop} Z
+                    M ${sW} ${cutPointBottom} L ${sW+t} ${cutPointBottom} L ${sW+t} ${sD} L ${sW} ${sD} Z
+                `;
             }
         } else {
             wallPath = `M ${-t} ${sD} L ${-t} ${-t} L ${sW + t} ${-t} L ${sW + t} ${sD} L ${sW} ${sD} L ${sW} 0 L 0 0 L 0 ${sD} Z`;
         }
+    
         svg += `<path d="${wallPath}" fill="url(#concretePattern)" stroke="#64748b" stroke-width="3" stroke-linejoin="round" />`;
+        if (isAdjacent) {
+            // Ορίζουμε το πλάτος της πλαϊνής κολώνας
+            let sidePillarW = t / 1.5; 
+            
+            // Αν είναι αριστερά, ξεκινάει από το -sidePillarW για να καταλήξει στο 0
+            // Αν είναι δεξιά, ξεκινάει ακριβώς από το sW
+            let rectX = (side2 === 'left') ? -sidePillarW : sW; 
 
+            // Κολώνα Πάνω (πριν την πόρτα)
+            svg += `<rect x="${rectX}" y="${doorStartY - 120}" width="${sidePillarW}" height="120" fill="url(#pillarPattern)" stroke="#475569" stroke-width="2" />`;
+            
+            // Κολώνα Κάτω (μετά την πόρτα)
+            svg += `<rect x="${rectX}" y="${doorStartY + CO}" width="${sidePillarW}" height="120" fill="url(#pillarPattern)" stroke="#475569" stroke-width="2" />`;
+        }
         // Μπροστινοί τοίχοι και κολώνες 
         const pillarW = 120, pillarH = 60, pillarY = sD, frontWallH = t, frontWallY = sD;
         const leftWallW = doorStartX - pillarW; 
@@ -1067,6 +1113,7 @@ function drawElevatorSVG(inputs, data) {
                             svg += `<rect x="${railX + railThk/2 - 2}" y="${handleY}" width="4" height="30" rx="1" fill="#111827" stroke="#94a3b8" stroke-width="0.5" />`;
                         }
                     }
+                    
                 });
             } else {
                 // Ημιαυτόματη Γωνιακή
@@ -1089,6 +1136,23 @@ function drawElevatorSVG(inputs, data) {
                 let handleY = (dir2 === 'panw') ? (doorStartY + CO - 20) : (doorStartY + 20);
                 svg += `<circle cx="${handleX}" cy="${handleY}" r="6" fill="#fbbf24" stroke="#d97706" stroke-width="2" />`;
             }
+            
+    
+    // Η εσωτερική πλευρά του τοίχου
+            let wallLineX = (side2 === 'left') ? 0 : sW;
+    // Η πλευρά της καμπίνας
+            let cabinLineX = (side2 === 'left') ? cX : cX + cW;
+
+    // Σχεδιάζουμε τις δύο οριζόντιες γραμμές που ενώνουν καμπίνα-τοίχο
+    // Πάνω γραμμή κάσας
+            svg += `<line x1="${wallLineX}" y1="${doorStartY}" x2="${cabinLineX}" y2="${doorStartY}" stroke="#64748b" stroke-width="2" />`;
+    // Κάτω γραμμή κάσας
+            svg += `<line x1="${wallLineX}" y1="${doorStartY + CO}" x2="${cabinLineX}" y2="${doorStartY + CO}" stroke="#64748b" stroke-width="2" />`;
+
+    // Προσθέτουμε ένα ελαφρύ γέμισμα (shadow) στο κενό της κάσας για βάθος
+            let rectX = Math.min(wallLineX, cabinLineX);
+            let rectW = Math.abs(cabinLineX - wallLineX);
+            svg += `<rect x="${rectX}" y="${doorStartY}" width="${rectW}" height="${CO}" fill="#1e293b" opacity="0.3" />`;
         }
 
         // ==============================================================
