@@ -5,6 +5,9 @@ from main_script import find_optimal_design
 from handle_db import connect_db, fetch_all_component_ids
 from pydantic import BaseModel
 from typing import Optional
+from plagia_opsi import calculate_plagia_opsi
+import traceback
+
 
 app = FastAPI()
 
@@ -22,6 +25,9 @@ class ElevatorRequest(BaseModel):
     cabin_doors : Optional[str] = None
     thesi_second_door : Optional[str] = None
     dir_second_door : Optional[str] = None
+    vathos_puthmena : float
+    ipsos_tel_orofou : float
+    diadromi_anelkistira : float
 
 
 # 2. ΡΥΘΜΙΣΗ CORS
@@ -58,12 +64,18 @@ async def solve_elevator(user_data: ElevatorRequest):
         
         # Έλεγχος αν βρέθηκε λύση (το result περιέχει το best_solution)
         if result and result.get("best_solution"):
+
+            best_katopsi = result["best_solution"]
+            
+            # Περνάμε ΤΟΣΟ τα user_data ΟΣΟ ΚΑΙ τη best_katopsi στην Πλάγια Όψη!
+            plagia_opsi_result = calculate_plagia_opsi(payload, best_katopsi)
             
             
             return {
                 "status": "success",
                 "data": {
-                    "best_solution": result["best_solution"]
+                    "best_solution": result["best_solution"],
+                    "plagia_opsi": plagia_opsi_result
                 }
             }
         else:
@@ -74,7 +86,9 @@ async def solve_elevator(user_data: ElevatorRequest):
             }
 
     except Exception as e:
-        print(f"Server Error: {e}")
+        print("====== ΑΝΑΛΥΤΙΚΟ ΣΦΑΛΜΑ ======")
+        traceback.print_exc()  # Αυτό θα τυπώσει την ακριβή γραμμή!
+        print("==============================")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
