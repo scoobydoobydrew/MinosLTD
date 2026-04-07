@@ -201,6 +201,16 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
                 solver.add(Apostasi_thalamou_toixou_dek_rear == Pahos_portas + 50.0)
                 solver.add(Apostasi_toixou_odhgou_x_dek_rear >= Pahos_portas + 60.0)
 
+            elif second_door_pos == 'left' and Tupos_Anoigmatos == 'Κεντρικό':
+                solver.add(Apostasi_lampa_y + CO_portas + G_portas + G_portas + 50.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_ar_rear == Pahos_portas + 50.0)
+                solver.add(Apostasi_toixou_odhgou_x_ar_rear >= Pahos_portas + 60.0)
+
+            elif second_door_pos == 'right' and Tupos_Anoigmatos == 'Κεντρικό':
+                solver.add(Apostasi_lampa_y + CO_portas + G_portas + G_portas + 50.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_dek_rear == Pahos_portas + 50.0)
+                solver.add(Apostasi_toixou_odhgou_x_dek_rear >= Pahos_portas + 60.0)
+
 
 
                 

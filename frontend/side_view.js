@@ -1,0 +1,125 @@
+// Συνάρτηση που καλείται από το main script όταν έρθουν τα δεδομένα
+function drawSideView(apiData) {
+    // 1. Εμφάνιση του Container
+    const container = document.getElementById('side-view-container');
+    const placeholder = document.getElementById('side-view-placeholder');
+    const svg = document.getElementById('elevator-svg-side');
+    
+    container.style.display = 'flex'; // Εμφανίζουμε το div
+    placeholder.style.display = 'none'; // Κρύβουμε το κείμενο placeholder
+    
+    // Καθαρίζουμε το προηγούμενο σχέδιο (αν υπάρχει)
+    svg.innerHTML = '';
+
+    // 2. Ανάγνωση Δεδομένων
+    // Παίρνουμε τα ύψη από τα inputs του χρήστη (σε mm)
+    const vathos_puthmena = parseFloat(document.getElementById('vathos_puthmena').value) || 300;
+    const ipsos_tel_orofou = parseFloat(document.getElementById('ipsos_tel_orofou').value) || 2100;
+    const diadromi_anelkistira = parseFloat(document.getElementById('diadromi_anelkistira').value) || 3000;
+    
+    // Το συνολικό ύψος του φρεατίου στην πραγματικότητα (σε mm)
+    const total_shaft_height = vathos_puthmena + diadromi_anelkistira + ipsos_tel_orofou;
+
+    // Παίρνουμε τα αποτελέσματα του Z3 από το backend
+    const z3_results = apiData.Calculated_Heights || {};
+    const cabin_height = z3_results.Ekswteriko_Ipsos_Thalamou || 2200;
+    const provolos = apiData.Provolos || 150;
+    const sassi_id = apiData.Sassi_ID || "Άγνωστο";
+
+    // 3. Ρυθμίσεις SVG & Κλίμακας (Scaling)
+    // Ορίζουμε ένα σταθερό πλάτος για το SVG και υπολογίζουμε το ύψος αναλογικά
+    const svgWidth = 400; 
+    const svgHeight = 700;
+    svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+    // Πόσα pixel αντιστοιχούν σε 1 χιλιοστό (mm);
+    const scale = (svgHeight - 100) / total_shaft_height; // Αφήνουμε 50px περιθώριο πάνω-κάτω
+
+    const marginX = 100; // Περιθώριο αριστερά-δεξιά
+    const shaftDrawWidth = svgWidth - (2 * marginX);
+    const shaftDrawHeight = total_shaft_height * scale;
+    
+    const startX = marginX;
+    const startY = 50; // Ξεκινάμε 50px από την κορυφή του SVG
+
+    // --- ΒΟΗΘΗΤΙΚΗ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΣΧΕΔΙΑΣΜΟ ---
+    function createRect(x, y, w, h, fill, stroke, strokeWidth, dasharray = "") {
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", x);
+        rect.setAttribute("y", y);
+        rect.setAttribute("width", w);
+        rect.setAttribute("height", h);
+        rect.setAttribute("fill", fill);
+        rect.setAttribute("stroke", stroke);
+        rect.setAttribute("stroke-width", strokeWidth);
+        if (dasharray) rect.setAttribute("stroke-dasharray", dasharray);
+        return rect;
+    }
+
+    function createText(x, y, textContent, fontSize, color, anchor = "middle") {
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", y);
+        text.setAttribute("fill", color);
+        text.setAttribute("font-size", fontSize);
+        text.setAttribute("font-family", "Arial, sans-serif");
+        text.setAttribute("text-anchor", anchor);
+        text.textContent = textContent;
+        return text;
+    }
+
+    // 4. ΣΧΕΔΙΑΣΗ ΦΡΕΑΤΙΟΥ
+    // Κεντρικό Κουτί (Τοίχοι Φρεατίου)
+    svg.appendChild(createRect(startX, startY, shaftDrawWidth, shaftDrawHeight, "none", "#64748b", 3));
+
+    // Διαχωριστικές γραμμές για Πυθμένα, Διαδρομή και Headroom
+    const headroomDrawHeight = ipsos_tel_orofou * scale;
+    const travelDrawHeight = diadromi_anelkistira * scale;
+    const pitDrawHeight = vathos_puthmena * scale;
+
+    // Γραμμή Τελευταίου Ορόφου
+    const topFloorY = startY + headroomDrawHeight;
+    const topFloorLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    topFloorLine.setAttribute("x1", startX - 20);
+    topFloorLine.setAttribute("y1", topFloorY);
+    topFloorLine.setAttribute("x2", startX + shaftDrawWidth + 20);
+    topFloorLine.setAttribute("y2", topFloorY);
+    topFloorLine.setAttribute("stroke", "#475569");
+    topFloorLine.setAttribute("stroke-dasharray", "5,5");
+    svg.appendChild(topFloorLine);
+
+    // Γραμμή Κατώτατου Ορόφου (Πάνω από τον πυθμένα)
+    const bottomFloorY = startY + headroomDrawHeight + travelDrawHeight;
+    const bottomFloorLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    bottomFloorLine.setAttribute("x1", startX - 20);
+    bottomFloorLine.setAttribute("y1", bottomFloorY);
+    bottomFloorLine.setAttribute("x2", startX + shaftDrawWidth + 20);
+    bottomFloorLine.setAttribute("y2", bottomFloorY);
+    bottomFloorLine.setAttribute("stroke", "#475569");
+    bottomFloorLine.setAttribute("stroke-dasharray", "5,5");
+    svg.appendChild(bottomFloorLine);
+
+    // 5. ΣΧΕΔΙΑΣΗ ΚΑΜΠΙΝΑΣ (Στον κατώτατο όροφο για να δούμε τον πυθμένα)
+    const cabinDrawHeight = cabin_height * scale;
+    // Η καμπίνα "πατάει" στον κατώτατο όροφο, άρα το y της είναι το bottomFloorY μείον το ύψος της
+    const cabinY = bottomFloorY - cabinDrawHeight; 
+    
+    // Ζωγραφίζουμε την καμπίνα
+    svg.appendChild(createRect(startX + 20, cabinY, shaftDrawWidth - 40, cabinDrawHeight, "rgba(56, 189, 248, 0.2)", "#38bdf8", 2));
+
+    // 6. ΚΕΙΜΕΝΑ ΚΑΙ ΔΙΑΣΤΑΣΕΙΣ
+    // Headroom Text
+    svg.appendChild(createText(startX - 10, startY + (headroomDrawHeight / 2), `Headroom: ${ipsos_tel_orofou}mm`, "12", "#94a3b8", "end"));
+    
+    // Travel Text
+    svg.appendChild(createText(startX - 10, topFloorY + (travelDrawHeight / 2), `Διαδρομή: ${diadromi_anelkistira}mm`, "12", "#94a3b8", "end"));
+    
+    // Pit Text
+    svg.appendChild(createText(startX - 10, bottomFloorY + (pitDrawHeight / 2), `Πυθμένας: ${vathos_puthmena}mm`, "12", "#94a3b8", "end"));
+
+    // Cabin Height Text (Μέσα στην καμπίνα)
+    svg.appendChild(createText(startX + (shaftDrawWidth / 2), cabinY + (cabinDrawHeight / 2), `Καμπίνα: ${cabin_height}mm`, "14", "#38bdf8", "middle"));
+    
+    // Sassi & Provolos Info (Πάνω από το φρεάτιο)
+    svg.appendChild(createText(svgWidth / 2, 25, `Επιλεγμένο Σασί: ${sassi_id} | Πρόβολος: ${provolos}mm`, "14", "#22c55e", "middle"));
+}
