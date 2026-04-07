@@ -104,6 +104,7 @@ function drawSideView(apiData) {
     // Η καμπίνα "πατάει" στον κατώτατο όροφο, άρα το y της είναι το bottomFloorY μείον το ύψος της
     const cabinY = bottomFloorY - cabinDrawHeight; 
     
+    
     // Ζωγραφίζουμε την καμπίνα
     svg.appendChild(createRect(startX + 20, cabinY, shaftDrawWidth - 40, cabinDrawHeight, "rgba(56, 189, 248, 0.2)", "#38bdf8", 2));
 

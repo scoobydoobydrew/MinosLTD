@@ -22,7 +22,8 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
         'Kateuthinsi_Deuteris_Portas': data_from_api.get('dir_second_door'),
         'Vathos_puthmena': float(data_from_api.get('vathos_puthmena')),
         'Ipsos_tel_orofou': float(data_from_api.get('ipsos_tel_orofou')),
-        'Diadromi_anelkistira': float(data_from_api.get('diadromi_anelkistira'))
+        'Diadromi_anelkistira': float(data_from_api.get('diadromi_anelkistira')),
+        'staseis': int(data_from_api.get('staseis', 0))
     }
 
     db = connect_db()
@@ -33,6 +34,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
     vathos_puthmena = user_inputs['Vathos_puthmena']
     ipsos_tel_orofou = user_inputs['Ipsos_tel_orofou']
     diadromi_anelkistira = user_inputs['Diadromi_anelkistira']
+    staseis = user_inputs['staseis']
 
     if atoma:
         user_inputs['scenario'] = 'fixed_area'
@@ -52,6 +54,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
     platos_thalamou = float(katopsi_results.get('Platos_thalamou'))
     vathos_thalamou = float(katopsi_results.get('Vathos_Thalamou'))
     emvadon_kampinas = (platos_thalamou*vathos_thalamou)/1000000.0
+
 
     if emvadon_kampinas < 0.37: theoretical_atoma = 1
     elif emvadon_kampinas < 0.58: theoretical_atoma = 2
@@ -111,6 +114,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
         ekswteriko_ipsos_thalamou = Int('ekswteriko_ipsos_thalamou')
         solver.add(ekswteriko_ipsos_thalamou <= constant_rules['ekswteriko_ipsos_thalamou_max'])
         solver.add(ekswteriko_ipsos_thalamou > 2100)
+        solver.add(diadromi_anelkistira/(staseis-1) >= ekswteriko_ipsos_thalamou + 100)
         
         solver.maximize(ekswteriko_ipsos_thalamou)
 

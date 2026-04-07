@@ -105,7 +105,9 @@
 
                 <label>Διαδρομή Ανελκυστήρα (mm):</label>
                 <input type="number" id="diadromi_anelkistira" placeholder="1000">
-              
+
+                <label>Αριθμός στάσεων</label>
+                <input type="number" id="staseis" placeholder="2">
 
                 <button onclick="solveElevator()">Υπολογισμός & Συναρμολόγηση</button>
             </section>
@@ -115,13 +117,13 @@
             <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
                     
                 <div id="elevator-plan-container" style="flex: 1; min-height: 600px; background: #000; border-radius: 25px; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 2px solid var(--border-color);">
-                    <p style="color: #64748b;">Η κάτοψη θα εμφανιστεί εδώ μετά τον υπολογισμό</p>
+                    <p style="color: #8b929c;">Η κάτοψη θα εμφανιστεί εδώ μετά τον υπολογισμό</p>
                 </div>
 
-                <div id="side-view-container" style="flex: 1; min-height: 600px; background: #000; border-radius: 25px; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 2px solid var(--border-color);">
-                    <p id="side-view-placeholder" style="color: #64748b;">Η πλάγια όψη θα εμφανιστεί εδώ</p>
+                <div id="side-view-container" style="width: 100%; height: 600px; max-height: 70vh; background: #53533f; border-radius: 25px; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 2px solid var(--border-color);">
+                    <p id="side-view-placeholder" style="color: #9ea0a3;">Η πλάγια όψη θα εμφανιστεί εδώ</p>
                     <svg id="elevator-svg-side" width="100%" height="100%" style="display:none;"></svg> 
-                    </div>
+                </div>
 
             </div>
 

@@ -53,7 +53,11 @@ def find_optimal_design(data_from_api):
         'Kateuthinsi_anoigmatos': data_from_api.get('kateuthinsi_anoigmatos'),
         'Arithmos_Portwn': data_from_api.get('cabin_doors'),
         'Thesi_Deuteris_Portas': data_from_api.get('thesi_second_door'),
-        'Kateuthinsi_Deuteris_Portas': data_from_api.get('dir_second_door')
+        'Kateuthinsi_Deuteris_Portas': data_from_api.get('dir_second_door'),
+        'Vathos_puthmena': float(data_from_api.get('vathos_puthmena', 0)),
+        'Ipsos_tel_orofou': float(data_from_api.get('ipsos_tel_orofou', 0)),
+        'Diadromi_anelkistira': float(data_from_api.get('diadromi_anelkistira', 0)),
+        'staseis': int(data_from_api.get('staseis', 0))
     }
 
    

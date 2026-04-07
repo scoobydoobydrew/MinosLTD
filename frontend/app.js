@@ -243,7 +243,8 @@ async function solveElevator() {
         dir_second_door: document.getElementById('secondDoorDir').value,
         vathos_puthmena: parseFloat(document.getElementById('vathos_puthmena').value),
         ipsos_tel_orofou: parseFloat(document.getElementById('ipsos_tel_orofou').value),
-        diadromi_anelkistira: parseFloat(document.getElementById('diadromi_anelkistira').value)
+        diadromi_anelkistira: parseFloat(document.getElementById('diadromi_anelkistira').value),
+        staseis: parseInt(document.getElementById('staseis').value)
         
 
 
@@ -266,11 +267,15 @@ async function solveElevator() {
     const result = await response.json(); // περίμενε την απάντηση από το Backend και κάνε την JSON
 
     if (result.status === "success") {
-        const best = result.data ? result.data.best_solution : result.best_solution;
+        // Τραβάμε ΤΑΥΤΟΧΡΟΝΑ την κάτοψη και την πλάγια όψη από το Backend!
+        const best_horiz = result.data ? result.data.best_solution : result.best_solution;
+        const best_vert = result.data ? result.data.plagia_opsi : result.plagia_opsi;
         
-        if (best) {
-            displayResults(best);
-            drawElevatorSVG(data, best); 
+        if (best_horiz) {
+            displayResults(best_horiz);
+            drawElevatorSVG(data, best_horiz); 
+            
+            drawplagiaopsi(data, best_horiz, best_vert);
         } else {
             if (container) container.innerHTML = `<p style="color: orange;">⚠️ Τα δεδομένα της λύσης είναι κενά.</p>`;
         }
@@ -1403,3 +1408,120 @@ function displayResults(data) {
 }
 
 
+function drawplagiaopsi(inputs, data_horiz, data_vert) {
+
+    const vathos_puthmena = parseFloat(inputs.vathos_puthmena);
+    const vathos_thalamou = parseFloat(data_horiz.Vathos_Thalamou);
+    const ipsos_tel_orofou = parseFloat(inputs.ipsos_tel_orofou);
+    const diadromi_anelkistira = parseFloat(inputs.diadromi_anelkistira);
+    const ekswteriko_ipsos_thalamou = parseFloat(data_vert.Ekswteriko_Ipsos_Thalamou);
+    const vathos_freatiou = parseFloat(inputs.shaftdepth);
+
+    const totalHeight = ipsos_tel_orofou + diadromi_anelkistira + vathos_puthmena;
+    
+
+    
+
+    // 1. Βρίσκουμε το κείμενο (placeholder) και το κρύβουμε
+    const placeholder = document.getElementById('side-view-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+
+    // 2. Βρίσκουμε το SVG (το γυαλί) και το εμφανίζουμε
+    const svgElement = document.getElementById('elevator-svg-side');
+    svgElement.style.display = 'block'; 
+    
+    const padding = 300; // einai o aeras pou theloume gyrw apo to sxedio
+    // Αυτή η γραμμή λέει στο SVG: "Μην κεντράρεις το περιεχόμενο, 
+    // βάλε το τέρμα αριστερά (xMin) και τέρμα πάνω (yMin)"
+    svgElement.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+    
+
+
+    svgElement.setAttribute('viewBox', `${-padding} ${-padding} ${vathos_freatiou + (2*padding)} ${totalHeight + (2*padding)}`);
+    
+    const y_top_floor = ipsos_tel_orofou;
+    const y_bottom_floor = ipsos_tel_orofou + diadromi_anelkistira;
+
+    const cabinXstart = 300;
+    const cabinOrofi = y_bottom_floor - ekswteriko_ipsos_thalamou;
+    const dapedo = parseFloat(data_vert.dapedo);
+    const aeras = parseFloat(data_vert.aeras);
+    const provolos = parseFloat(data_vert.provolos);
+    const staseis = parseFloat(inputs.staseis);
+    const ipsos_orofou = diadromi_anelkistira / (staseis - 1);
+    
+    // tha orisw ta kena orofwn xwris ton teleutaio orofo, ara exw staseis - 1 diaforetika y gia kathe orofo, kai tha ta xwriso isotima ston diadromi_anelkistira
+       
+    const floorsGap = diadromi_anelkistira / (staseis - 1);
+
+
+
+    svgElement.innerHTML = `
+        <defs>
+            <pattern id="hatch" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="40" stroke="#ffffffcb" stroke-width="4" />
+            </pattern>
+        </defs>
+
+        <rect x="0" y="0" width="200" height="${totalHeight}" fill="url(#hatch)" stroke="#edeff1" stroke-width="2" />
+    
+        <rect x="0" y="${totalHeight}" width="${vathos_freatiou}" height="200" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        
+        <rect x="0" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5" />
+         
+        <rect x="0" y="0" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+
+        <rect x="${vathos_freatiou-200}" y="0" width="200" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+
+        <rect x="${vathos_freatiou-200}" y="totalHeight-350-diadromi_anelkistira-ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+
+        <rect x="${vathos_freatiou-200}" y="totalHeight-diadromi_anelkistira}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+    `;
+
+
+    const drawFloorspackage = (ipsos_orofou, orofos) => {
+        
+        
+
+        return `
+
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-200 - orofos*ipsos_orofou}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+           
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-350 - orofos*ipsos_orofou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+           
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-350 - ekswteriko_ipsos_thalamou - orofos*ipsos_orofou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-350 - ipsos_orofou - orofos*ipsos_orofou}" width="200" height="${ipsos_orofou-ekswteriko_ipsos_thalamou}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+
+            
+        `;
+
+    }
+
+    
+    let floorsHTML = "";
+
+
+    for (let i = 0; i < staseis - 1; i++) {
+        floorsHTML += drawFloorspackage(diadromi_anelkistira / (staseis-1), i);
+    }
+
+
+    svgElement.innerHTML += `
+        <g id="all-floors">
+            ${floorsHTML}
+        </g>
+    `;
+
+
+
+
+
+
+
+
+}
+
+    

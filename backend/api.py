@@ -28,6 +28,7 @@ class ElevatorRequest(BaseModel):
     vathos_puthmena : float
     ipsos_tel_orofou : float
     diadromi_anelkistira : float
+    staseis : int
 
 
 # 2. ΡΥΘΜΙΣΗ CORS
