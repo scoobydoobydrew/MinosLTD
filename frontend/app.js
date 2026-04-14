@@ -1408,6 +1408,18 @@ function displayResults(data) {
 }
 
 
+
+
+
+
+
+// ====================================================================================
+// ==================================PLAGIA OPSI (SIDE)================================
+// ====================================================================================
+
+
+
+
 function drawplagiaopsi(inputs, data_horiz, data_vert) {
 
     const vathos_puthmena = parseFloat(inputs.vathos_puthmena);
@@ -1416,6 +1428,7 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
     const diadromi_anelkistira = parseFloat(inputs.diadromi_anelkistira);
     const ekswteriko_ipsos_thalamou = parseFloat(data_vert.Ekswteriko_Ipsos_Thalamou);
     const vathos_freatiou = parseFloat(inputs.shaftdepth);
+    
 
     const totalHeight = ipsos_tel_orofou + diadromi_anelkistira + vathos_puthmena;
     
@@ -1450,12 +1463,14 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
     const staseis = parseFloat(inputs.staseis);
     const ipsos_orofou = diadromi_anelkistira / (staseis - 1);
     
+    
     // tha orisw ta kena orofwn xwris ton teleutaio orofo, ara exw staseis - 1 diaforetika y gia kathe orofo, kai tha ta xwriso isotima ston diadromi_anelkistira
-       
+   
     const floorsGap = diadromi_anelkistira / (staseis - 1);
+   
+    // <rect x="${vathos_freatiou-200}" y="0" width="200" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
 
-
-
+    if (staseis > 2) {
     svgElement.innerHTML = `
         <defs>
             <pattern id="hatch" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
@@ -1464,6 +1479,10 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
         </defs>
 
         <rect x="0" y="0" width="200" height="${totalHeight}" fill="url(#hatch)" stroke="#edeff1" stroke-width="2" />
+
+        <rect x="0" y="0" width="${vathos_freatiou}" height="${200}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+
+        <rect x="${vathos_freatiou-200}" y="200" width="200" height="100" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
     
         <rect x="0" y="${totalHeight}" width="${vathos_freatiou}" height="200" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
         
@@ -1472,12 +1491,26 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
         <rect x="0" y="0" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
 
         <rect x="${vathos_freatiou-200}" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+ 
+        
 
-        <rect x="${vathos_freatiou-200}" y="0" width="200" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="300" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
 
-        <rect x="${vathos_freatiou-200}" y="totalHeight-350-diadromi_anelkistira-ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
 
-        <rect x="${vathos_freatiou-200}" y="totalHeight-diadromi_anelkistira}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou + 150}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+
+
+
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="#b6b46444" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2"/>
+    
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+    
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150 - ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - ipsos_orofou}" width="200" height="${ipsos_orofou - ekswteriko_ipsos_thalamou - 150}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
     `;
 
 
@@ -1487,15 +1520,14 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
 
         return `
 
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-200 - orofos*ipsos_orofou}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-vathos_puthmena - orofos*ipsos_orofou}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
            
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-350 - orofos*ipsos_orofou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-150-vathos_puthmena - orofos*ipsos_orofou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
            
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-350 - ekswteriko_ipsos_thalamou - orofos*ipsos_orofou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-150-vathos_puthmena - ekswteriko_ipsos_thalamou - orofos*ipsos_orofou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
 
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-350 - ipsos_orofou - orofos*ipsos_orofou}" width="200" height="${ipsos_orofou-ekswteriko_ipsos_thalamou}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-vathos_puthmena - ipsos_orofou - orofos*ipsos_orofou}" width="200" height="${ipsos_orofou-ekswteriko_ipsos_thalamou}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
 
-            
         `;
 
     }
@@ -1504,7 +1536,7 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
     let floorsHTML = "";
 
 
-    for (let i = 0; i < staseis - 1; i++) {
+    for (let i = 1; i < staseis - 1; i++) {
         floorsHTML += drawFloorspackage(diadromi_anelkistira / (staseis-1), i);
     }
 
@@ -1514,7 +1546,52 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
             ${floorsHTML}
         </g>
     `;
+    }
 
+    if (staseis == 2){
+        svgElement.innerHTML = `
+        <defs>
+            <pattern id="hatch" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="40" stroke="#ffffffcb" stroke-width="4" />
+            </pattern>
+        </defs>
+
+        <rect x="0" y="0" width="200" height="${totalHeight}" fill="url(#hatch)" stroke="#edeff1" stroke-width="2" />
+
+        <rect x="0" y="0" width="${vathos_freatiou}" height="${200}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+
+        <rect x="${vathos_freatiou-200}" y="200" width="200" height="100" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+    
+        <rect x="0" y="${totalHeight}" width="${vathos_freatiou}" height="200" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        
+        <rect x="0" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5" />
+         
+        <rect x="0" y="0" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+ 
+        
+
+        <rect x="${vathos_freatiou-200}" y="300" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+
+        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+
+        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou + 150}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+
+
+
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="#b6b46444" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2"/>
+    
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+    
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150 - ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - ipsos_orofou + 250}" width="200" height="${ipsos_orofou - ekswteriko_ipsos_thalamou - 400}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+    `;
+
+    }
 
 
 
