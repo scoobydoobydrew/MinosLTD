@@ -122,7 +122,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
 
         solver.add(vathos_puthmena > dapedo + aeras + provolos)
 
-        solver.add(ipsos_tel_orofou > ekswteriko_ipsos_thalamou + aeras + 100)
+        solver.add(ipsos_tel_orofou == ekswteriko_ipsos_thalamou + aeras + 100)
 
 
         
