@@ -1430,7 +1430,7 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
     const vathos_freatiou = parseFloat(inputs.shaftdepth);
     
 
-    const totalHeight = ipsos_tel_orofou + diadromi_anelkistira + vathos_puthmena;
+    const totalHeight = ipsos_tel_orofou + diadromi_anelkistira + vathos_puthmena + 100;
     
 
     
@@ -1478,39 +1478,39 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
             </pattern>
         </defs>
 
-        <rect x="0" y="0" width="200" height="${totalHeight}" fill="url(#hatch)" stroke="#edeff1" stroke-width="2" />
+        <rect x="0" y="0" width="200" height="${totalHeight}" fill="url(#hatch)" stroke="#edeff1" stroke-width="2" />  " τοίχος αριστερα " 
 
-        <rect x="0" y="0" width="${vathos_freatiou}" height="${200}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        <rect x="0" y="-200" width="${vathos_freatiou}" height="${200}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" /> " τοίχος πάνω "
 
-        <rect x="${vathos_freatiou-200}" y="200" width="200" height="100" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        <rect x="${vathos_freatiou-200}" y="0" width="200" height="${totalHeight - vathos_puthmena - 100 - ekswteriko_ipsos_thalamou - diadromi_anelkistira}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" /> "το ίχνος δεξιά πάνω "
     
-        <rect x="0" y="${totalHeight}" width="${vathos_freatiou}" height="200" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        <rect x="0" y="${totalHeight}" width="${vathos_freatiou}" height="200" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" /> " τοίχος κάτω "
         
-        <rect x="0" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5" />
+        <rect x="0" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5" /> " κολώνα κάτω αριστερά "
          
-        <rect x="0" y="0" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+        <rect x="0" y="-200" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/> " κολώνα πάνω αριστερά "
 
-        <rect x="${vathos_freatiou-200}" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/> " κολώνα κάτω δεξιά "
  
         
 
-        <rect x="${vathos_freatiou-200}" y="300" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - diadromi_anelkistira - ekswteriko_ipsos_thalamou - 100}" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/> "πόρτα τελευταίου ορόφου"
 
-        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - diadromi_anelkistira - 100}" width="900" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/> " πάτωμα/πλάκα τελευταίου ορόφου "
 
-        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou + 150}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
-
-
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - diadromi_anelkistira }" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/> " κολώνα κάτω απο την πλάκα"
 
 
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="#b6b46444" stroke="#ffffff" stroke-width="5"/>
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2"/>
+
+
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="#b6b46444" stroke="#ffffff" stroke-width="5"/> "η κολώνα του πυθμένα"
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2"/> " η κολώνα του πυθμένα με χάτς για να φαίνεται το βάθος "
     
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 100}" width="900" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/> "η πλάκα του ισογείου"
     
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150 - ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 100 - ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/> "η πόρτα του ισογείου"
 
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - ipsos_orofou}" width="200" height="${ipsos_orofou - ekswteriko_ipsos_thalamou - 150}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - ipsos_orofou}" width="200" height="${ipsos_orofou - ekswteriko_ipsos_thalamou - 100}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/> "ο τοίχος πάνω από την πόρτα του ισογείου""
     `;
 
 
@@ -1522,13 +1522,14 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
 
             <rect x="${vathos_freatiou-200}" y="${totalHeight-vathos_puthmena - orofos*ipsos_orofou}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
            
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-150-vathos_puthmena - orofos*ipsos_orofou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-100-vathos_puthmena - orofos*ipsos_orofou}" width="900" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
            
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-150-vathos_puthmena - ekswteriko_ipsos_thalamou - orofos*ipsos_orofou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-100-vathos_puthmena - ekswteriko_ipsos_thalamou - orofos*ipsos_orofou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
 
-            <rect x="${vathos_freatiou-200}" y="${totalHeight-vathos_puthmena - ipsos_orofou - orofos*ipsos_orofou}" width="200" height="${ipsos_orofou-ekswteriko_ipsos_thalamou}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+            <rect x="${vathos_freatiou-200}" y="${totalHeight-vathos_puthmena - ipsos_orofou - orofos*ipsos_orofou}" width="200" height="${ipsos_orofou-ekswteriko_ipsos_thalamou -100}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
 
         `;
+
 
     }
 
@@ -1558,37 +1559,36 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
 
         <rect x="0" y="0" width="200" height="${totalHeight}" fill="url(#hatch)" stroke="#edeff1" stroke-width="2" />
 
-        <rect x="0" y="0" width="${vathos_freatiou}" height="${200}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        <rect x="0" y="-200" width="${vathos_freatiou}" height="${200}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
 
-        <rect x="${vathos_freatiou-200}" y="200" width="200" height="100" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
+        <rect x="${vathos_freatiou-200}" y="0" width="200" height="${totalHeight - diadromi_anelkistira - vathos_puthmena - ekswteriko_ipsos_thalamou - 100}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
     
         <rect x="0" y="${totalHeight}" width="${vathos_freatiou}" height="200" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2" />
         
         <rect x="0" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5" />
          
-        <rect x="0" y="0" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
+        <rect x="0" y="-200" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
 
         <rect x="${vathos_freatiou-200}" y="${totalHeight}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
  
         
 
-        <rect x="${vathos_freatiou-200}" y="300" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - diadromi_anelkistira - ekswteriko_ipsos_thalamou - 100}" width="100" height="${ekswteriko_ipsos_thalamou}"  fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/> "πόρτα τελευταίου ορόφου"
 
-        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - diadromi_anelkistira - 100}" width="900" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/> " πάτωμα/πλάκα τελευταίου ορόφου "
 
-        <rect x="${vathos_freatiou-200}" y="${300 + ekswteriko_ipsos_thalamou + 150}" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/>
-
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - diadromi_anelkistira }" width="200" height="200" fill="#2a2d3af3" stroke="#ffffff" stroke-width="5"/> " κολώνα κάτω απο την πλάκα"
 
 
 
         <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="#b6b46444" stroke="#ffffff" stroke-width="5"/>
         <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena}" width="200" height="${vathos_puthmena}" fill="url(#hatch)" stroke="#c9ced6" stroke-width="2"/>
     
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150}" width="900" height="150" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 100}" width="900" height="100" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
     
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 150 - ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - 100 - ekswteriko_ipsos_thalamou}" width="100" height="${ekswteriko_ipsos_thalamou}" rx="20" ry="20" fill="#2a2d3a00" stroke="#ffffff" stroke-width="4"/>
 
-        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - ipsos_orofou + 250}" width="200" height="${ipsos_orofou - ekswteriko_ipsos_thalamou - 400}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
+        <rect x="${vathos_freatiou-200}" y="${totalHeight - vathos_puthmena - ipsos_orofou}" width="200" height="${ipsos_orofou - ekswteriko_ipsos_thalamou - 100}" fill="url(#hatch)" stroke="#ffffff" stroke-width="5"/>
     `;
 
     }
