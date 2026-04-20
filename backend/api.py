@@ -26,7 +26,7 @@ class ElevatorRequest(BaseModel):
     thesi_second_door : Optional[str] = None
     dir_second_door : Optional[str] = None
     vathos_puthmena : float
-    ipsos_tel_orofou : float
+    ekswteriko_ipsos_thalamou : float
     diadromi_anelkistira : float
     staseis : int
 

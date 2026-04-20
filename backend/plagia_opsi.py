@@ -21,7 +21,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
         'Thesi_Deuteris_Portas': data_from_api.get('thesi_second_door'),
         'Kateuthinsi_Deuteris_Portas': data_from_api.get('dir_second_door'),
         'Vathos_puthmena': float(data_from_api.get('vathos_puthmena')),
-        'Ipsos_tel_orofou': float(data_from_api.get('ipsos_tel_orofou')),
+        'Ekswteriko_ipsos_thalamou': float(data_from_api.get('ekswteriko_ipsos_thalamou')),
         'Diadromi_anelkistira': float(data_from_api.get('diadromi_anelkistira')),
         'staseis': int(data_from_api.get('staseis', 0))
     }
@@ -32,7 +32,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
     
 
     vathos_puthmena = user_inputs['Vathos_puthmena']
-    ipsos_tel_orofou = user_inputs['Ipsos_tel_orofou']
+    ekswteriko_ipsos_thalamou = user_inputs['Ekswteriko_ipsos_thalamou']
     diadromi_anelkistira = user_inputs['Diadromi_anelkistira']
     staseis = user_inputs['staseis']
 
@@ -43,8 +43,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
     constant_rules = {
         'dapedo_min' : 50,
         'aeras_min' : 80,
-        'aeras_max' : 120,
-        'ekswteriko_ipsos_thalamou_max' : 2400
+        'aeras_max' : 120
     }
 
     
@@ -111,18 +110,18 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
         solver.add(aeras >= constant_rules['aeras_min'])
         solver.add(aeras <= constant_rules['aeras_max'])
 
-        ekswteriko_ipsos_thalamou = Int('ekswteriko_ipsos_thalamou')
-        solver.add(ekswteriko_ipsos_thalamou <= constant_rules['ekswteriko_ipsos_thalamou_max'])
-        solver.add(ekswteriko_ipsos_thalamou > 2100)
+        ipsos_tel_orofou = Int('ipsos_tel_orofou')
+        
         solver.add(diadromi_anelkistira/(staseis-1) >= ekswteriko_ipsos_thalamou + 100)
         
-        solver.maximize(ekswteriko_ipsos_thalamou)
+    
 
 
 
         solver.add(vathos_puthmena > dapedo + aeras + provolos)
 
         solver.add(ipsos_tel_orofou == ekswteriko_ipsos_thalamou + aeras + 100)
+        solver.minimize(ipsos_tel_orofou)
 
 
         
@@ -134,7 +133,7 @@ def calculate_plagia_opsi(data_from_api, katopsi_results):
                 'Dapedo': model[dapedo].as_long(),
                 'Aeras': model[aeras].as_long(),
                 'Provolos': provolos,
-                'Ekswteriko_Ipsos_Thalamou': model[ekswteriko_ipsos_thalamou].as_long()
+                'Ipsos_tel_orofou': model[ipsos_tel_orofou].as_long()
             }
             break
 

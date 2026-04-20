@@ -242,7 +242,7 @@ async function solveElevator() {
         thesi_second_door: document.getElementById('secondDoorPosition').value,
         dir_second_door: document.getElementById('secondDoorDir').value,
         vathos_puthmena: parseFloat(document.getElementById('vathos_puthmena').value),
-        ipsos_tel_orofou: parseFloat(document.getElementById('ipsos_tel_orofou').value),
+        ekswteriko_ipsos_thalamou: parseFloat(document.getElementById('ekswteriko_ipsos_thalamou').value),
         diadromi_anelkistira: parseFloat(document.getElementById('diadromi_anelkistira').value),
         staseis: parseInt(document.getElementById('staseis').value)
         
@@ -1424,9 +1424,9 @@ function drawplagiaopsi(inputs, data_horiz, data_vert) {
 
     const vathos_puthmena = parseFloat(inputs.vathos_puthmena);
     const vathos_thalamou = parseFloat(data_horiz.Vathos_Thalamou);
-    const ipsos_tel_orofou = parseFloat(inputs.ipsos_tel_orofou);
+    const ipsos_tel_orofou = parseFloat(data_vert.Ipsos_tel_orofou);
     const diadromi_anelkistira = parseFloat(inputs.diadromi_anelkistira);
-    const ekswteriko_ipsos_thalamou = parseFloat(data_vert.Ekswteriko_Ipsos_Thalamou);
+    const ekswteriko_ipsos_thalamou = parseFloat(inputs.ekswteriko_ipsos_thalamou);
     const vathos_freatiou = parseFloat(inputs.shaftdepth);
     
 
