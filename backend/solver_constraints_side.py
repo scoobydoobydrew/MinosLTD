@@ -54,6 +54,9 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     anoigma_portas = current_inputs.get('Anoigma_Portas')
     kateuthinsi_anoigmatos = current_inputs.get('Kateuthinsi_anoigmatos')
     cabin_doors = str(current_inputs.get('Arithmos_Portwn'))
+    second_door_pos = current_inputs.get('Thesi_Deuteris_Portas')
+    dir_first_door = current_inputs.get('Kateuthinsi_anoigmatos')
+    dir_second_door = current_inputs.get('Kateuthinsi_Deuteris_Portas')
 
     solver.add(Anoigma_odhgwn_const <= Vathos_Thalamou)
 
@@ -181,7 +184,23 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
             solver.add(Apostasi_thalamou_toixou_y >= 120.0)
             solver.add(Apostasi_thalamou_toixou_y <= 200.0)
 
+    if cabin_doors == '2_gwniako':
         
+        if DOOR_TYPE == 'Αυτόματη':
+
+            if dir_first_door == 'Αριστερά' and dir_second_door == 'panw':
+                solver.add(Apostasi_lampa_y + CO_portas + G_portas + 20.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_x == Pahos_portas + 50.0)
+            
+            elif dir_first_door == 'Αριστερά' and dir_second_door == 'katw':
+                solver.add(300 + CO_portas + G_portas + Apostasi_lampa_y + 20.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_x == Pahos_portas + 50.0)
+
+        
+        elif DOOR_TYPE == 'Ημιαυτόματη':
+            solver.add(Apostasi_thalamou_toixou_x >=120.0)
+                
+
         
 
 
