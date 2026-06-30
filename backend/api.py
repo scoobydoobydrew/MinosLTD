@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from typing import Optional
 from plagia_opsi import calculate_plagia_opsi
 import traceback
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 
 
 app = FastAPI()
@@ -39,10 +42,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.get("/")
-def home():
-    return {"status": "online", "message": "Elevator API is running"}
 
 @app.get("/get-doors")
 def get_doors():
@@ -92,6 +91,18 @@ async def solve_elevator(user_data: ElevatorRequest):
         print("==============================")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Σερβίρει τον φάκελο frontend
+app.mount("/static", StaticFiles(directory="frontend"), name="static")\
+
+# Όταν κάποιος μπαίνει στην κεντρική IP, του δείχνει το index.html
+@app.get("/")
+def read_root():
+    return FileResponse("frontend/index.html")
+
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+
+
     
