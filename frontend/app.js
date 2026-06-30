@@ -10,24 +10,25 @@ function updateDoorLogic() {
 
     const currentCabinDoorsVal = cabinDoorsSelect.value;
 
+    // ΝΕΟ: Εμφανίζει πάντα την επιλογή 2_gwniako ανεξαρτήτως σασί!
     if (chassisPosition === 'rear') {
-        if (!cabinDoorsSelect.innerHTML.includes('2_gwniako')) {
-            cabinDoorsSelect.innerHTML = `
-                <option value="1">1 Πόρτα</option>
-                <option value="2_gwniako">2 Πόρτες (γωνιακό)</option>
-            `;
-            if (currentCabinDoorsVal === '2_gwniako') cabinDoorsSelect.value = '2_gwniako';
-            else cabinDoorsSelect.value = '1';
-        }
+        cabinDoorsSelect.innerHTML = `
+            <option value="1">1 Πόρτα</option>
+            <option value="2_gwniako">2 Πόρτες (γωνιακό)</option>
+        `;
     } else {
-        if (!cabinDoorsSelect.innerHTML.includes('2_opposite')) {
-            cabinDoorsSelect.innerHTML = `
-                <option value="1">1 Πόρτα</option>
-                <option value="2_opposite">2 Πόρτες (διαμπερές)</option>
-            `;
-            if (currentCabinDoorsVal === '2_opposite') cabinDoorsSelect.value = '2_opposite';
-            else cabinDoorsSelect.value = '1';
-        }
+        cabinDoorsSelect.innerHTML = `
+            <option value="1">1 Πόρτα</option>
+            <option value="2_opposite">2 Πόρτες (διαμπερές)</option>
+            <option value="2_gwniako">2 Πόρτες (γωνιακό)</option>
+        `;
+    }
+
+    // Διατήρηση της επιλογής αν υπάρχει στο νέο μενού
+    if (Array.from(cabinDoorsSelect.options).some(opt => opt.value === currentCabinDoorsVal)) {
+        cabinDoorsSelect.value = currentCabinDoorsVal;
+    } else {
+        cabinDoorsSelect.value = '1';
     }
 
     if (cabinDoorsSelect.value === '2_gwniako') {
