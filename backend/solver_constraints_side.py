@@ -187,12 +187,21 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
     if cabin_doors == '2_gwniako':
         
         if DOOR_TYPE == 'Αυτόματη':
+            solver.add(Apostasi_dek_lampa >= Apostasi_thalamou_toixou_x + 20)
 
             if dir_first_door == 'Αριστερά' and dir_second_door == 'panw':
                 solver.add(Apostasi_lampa_y + CO_portas + G_portas + 20.0 <= Vathos_freatiou)
                 solver.add(Apostasi_thalamou_toixou_x == Pahos_portas + 50.0)
             
             elif dir_first_door == 'Αριστερά' and dir_second_door == 'katw':
+                solver.add(300 + CO_portas + G_portas + Apostasi_lampa_y + 20.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_x == Pahos_portas + 50.0)
+
+            elif dir_first_door == 'Δεξιά' and dir_second_door == 'panw':
+                solver.add(Apostasi_lampa_y + CO_portas + G_portas + 20.0 <= Vathos_freatiou)
+                solver.add(Apostasi_thalamou_toixou_x == Pahos_portas + 50.0)
+            
+            elif dir_first_door == 'Δεξιά' and dir_second_door == 'katw':
                 solver.add(300 + CO_portas + G_portas + Apostasi_lampa_y + 20.0 <= Vathos_freatiou)
                 solver.add(Apostasi_thalamou_toixou_x == Pahos_portas + 50.0)
 
