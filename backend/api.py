@@ -9,6 +9,7 @@ from plagia_opsi import calculate_plagia_opsi
 import traceback
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import os 
 
 
 
@@ -91,13 +92,23 @@ async def solve_elevator(user_data: ElevatorRequest):
         print("==============================")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Σερβίρει τον φάκελο frontend
-app.mount("/static", StaticFiles(directory="frontend"), name="static")\
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Όταν κάποιος μπαίνει στην κεντρική IP, του δείχνει το index.html
+# 2. Ψάχνουμε τον φάκελο "frontend" στο ίδιο επίπεδο (αν το api.py είναι στο root)
+if os.path.exists(os.path.join(current_dir, "frontend")):
+    FRONTEND_DIR = os.path.join(current_dir, "frontend")
+# 3. Αν δεν τον βρει, πάει έναν φάκελο πίσω (αν το api.py είναι μέσα στο "backend")
+else:
+    FRONTEND_DIR = os.path.join(os.path.dirname(current_dir), "frontend")
+
+print(f"[*] Ξεκινάω τον Server! Ο φάκελος Frontend βρέθηκε εδώ: {FRONTEND_DIR}")
+
+# Κάνουμε mount τον φάκελο χρησιμοποιώντας την απόλυτη διαδρομή!
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
 @app.get("/")
 def read_root():
-    return FileResponse("frontend/index.html")
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
