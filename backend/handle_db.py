@@ -1,16 +1,20 @@
+import os
 import mysql.connector
+from dotenv import load_dotenv
+
+# Τα στοιχεία σύνδεσης ΔΕΝ μπαίνουν στον κώδικα: διαβάζονται από το .env (βλ. .env.example), που δεν ανεβαίνει στο git.
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
 
 def connect_db():
     try:
         connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='6970264073Ar',
-            database='minosltd',
+            host=os.environ.get("DB_HOST", "localhost"),
+            user=os.environ["DB_USER"],
+            password=os.environ["DB_PASSWORD"],
+            database=os.environ.get("DB_NAME", "minosltd"),
             charset='utf8mb4'
         )
         if connection.is_connected():
-         connection.cursor().execute("USE minosltd")
          print("Connection to the database was successful.")
          return connection
         else:

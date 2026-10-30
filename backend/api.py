@@ -36,12 +36,15 @@ class ElevatorRequest(BaseModel):
 
 
 # 2. ΡΥΘΜΙΣΗ CORS
+# Επιτρεπόμενες origins από το .env (CORS_ORIGINS, χωρισμένες με κόμμα). Όταν το site καλεί το API μέσω proxy
+# στο ίδιο domain, δεν χρειάζεται CORS καθόλου.
+CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:5000").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 @app.get("/get-doors")
@@ -111,7 +114,8 @@ def read_root():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Η θύρα 8000 είναι του vLLM στο μηχάνημα του agent: προεπιλογή 8002, ρυθμίζεται με API_PORT.
+    uvicorn.run(app, host=os.environ.get("API_HOST", "127.0.0.1"), port=int(os.environ.get("API_PORT", "8002")))
 
 
 

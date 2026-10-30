@@ -1,0 +1,6 @@
+z3-solver
+fastapi
+uvicorn
+mysql-connector-python
+pydantic
+python-dotenv
