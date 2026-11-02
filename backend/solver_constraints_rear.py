@@ -31,7 +31,7 @@ def apply_constraints(solver, user_inputs, sassi_data, sthrigma_data, odhgoi_dat
         req_area = current_inputs.get('required_area', 0)
         if req_area > 0:
             int_req_area = int(req_area)
-            int_max_area = int(req_area * 1.05)
+            int_max_area = int(req_area * current_inputs.get('area_hi_factor', 1.05))
             solver.add(Platos_thalamou * Vathos_Thalamou >= int_req_area)
             solver.add(Platos_thalamou * Vathos_Thalamou <= int_max_area)
     

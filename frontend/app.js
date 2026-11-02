@@ -287,8 +287,25 @@ async function solveElevator() {
                 window.bracketOffsets = {}; 
                 
                 displayResults(best_horiz);
+                const warningText = result.data ? result.data.warning : result.warning;
+                if (warningText) {
+                    const warnDiv = document.createElement('div');
+                    warnDiv.style.cssText = 'background:#fff7ed;border:2px solid #f97316;color:#7c2d12;padding:12px 16px;border-radius:12px;margin-top:12px;font-family:Inter,sans-serif;';
+                    warnDiv.textContent = '⚠️ ' + warningText;
+                    document.getElementById('resultsTable').appendChild(warnDiv);
+                }
                 drawElevatorSVG(data, best_horiz); 
-                drawplagiaopsi(data, best_horiz, best_vert);
+                // Η πλάγια όψη δεν πρέπει να χαλάει την κάτοψη αν δεν βρέθηκε λύση γι' αυτήν
+                try {
+                    if (best_vert && typeof best_vert === 'object') {
+                        drawplagiaopsi(data, best_horiz, best_vert);
+                    } else {
+                        const ph = document.getElementById('side-view-placeholder');
+                        if (ph) ph.textContent = 'Δεν βρέθηκε εφικτή πλάγια όψη για αυτά τα δεδομένα (έλεγξε βάθος πυθμένα, διαδρομή, στάσεις).';
+                    }
+                } catch (sideErr) {
+                    console.error('Side view error:', sideErr);
+                }
             } else {
                 if (container) container.innerHTML = `<p style="color: orange;">⚠️ Τα δεδομένα της λύσης είναι κενά.</p>`;
             }

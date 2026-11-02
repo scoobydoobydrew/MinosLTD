@@ -72,21 +72,34 @@ async def solve_elevator(user_data: ElevatorRequest):
             best_katopsi = result["best_solution"]
             
             # Περνάμε ΤΟΣΟ τα user_data ΟΣΟ ΚΑΙ τη best_katopsi στην Πλάγια Όψη!
-            plagia_opsi_result = calculate_plagia_opsi(payload, best_katopsi)
-            
+            # Αν η πλάγια όψη αποτύχει (π.χ. staseis=1, λάθος βάθος πυθμένα), η κάτοψη πρέπει να επιστραφεί κανονικά
+            try:
+                plagia_opsi_result = calculate_plagia_opsi(payload, best_katopsi)
+            except Exception:
+                traceback.print_exc()
+                plagia_opsi_result = None
+            if not isinstance(plagia_opsi_result, dict):
+                plagia_opsi_result = None
             
             return {
                 "status": "success",
                 "data": {
                     "best_solution": result["best_solution"],
-                    "plagia_opsi": plagia_opsi_result
+                    "plagia_opsi": plagia_opsi_result,
+                    "warning": result.get("warning")
                 }
             }
         else:
+            msg = "Δεν βρέθηκε εφικτή λύση για αυτές τις παραμέτρους."
+            if isinstance(result, dict) and result.get("status") == "error":
+                msg = result.get("message") or msg
+            causes = result.get("unsat_causes", []) if isinstance(result, dict) else []
+            if causes:
+                msg = msg + " " + " ".join(causes)
             return {
                 "status": "error",
-                "message": "Δεν βρέθηκε εφικτή λύση για αυτές τις παραμέτρους.",
-                "unsat_causes": result.get("unsat_causes", []) if result else []
+                "message": msg,
+                "unsat_causes": result.get("unsat_causes", []) if isinstance(result, dict) else []
             }
 
     except Exception as e:

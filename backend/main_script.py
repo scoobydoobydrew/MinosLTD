@@ -36,7 +36,7 @@ def get_constraint_solver(thesi_sassi):
 
 
 
-def find_optimal_design(data_from_api):
+def _find_optimal_design(data_from_api, expand_sassi=False, area_hi=None, force_max_area=False):
     door_type = data_from_api.get('tupos_portas')
     leaf_input = data_from_api.get('arithmos_fyllon')
     atoma = data_from_api.get('atoma')
@@ -59,6 +59,8 @@ def find_optimal_design(data_from_api):
         'Diadromi_anelkistira': float(data_from_api.get('diadromi_anelkistira', 0)),
         'staseis': int(data_from_api.get('staseis', 0))
     }
+    if area_hi:
+        user_inputs['area_hi_factor'] = area_hi   # χαλάρωση του ανώτατου εμβαδού σε fixed_area
 
    
     raw_thesi = data_from_api.get('thesi_sassi')
@@ -67,22 +69,23 @@ def find_optimal_design(data_from_api):
 
 
     db = connect_db()
-    if not db: return "Connection Failed"
+    if not db: return {"status": "error", "message": "Connection Failed"}
 
     try:
         apply_constraints = get_constraint_solver(raw_thesi)
     except ValueError as e:
         db.close()
-        return f"Constraint Load Error: {e}"
+        return {"status": "error", "message": f"Constraint Load Error: {e}"}
     
     requested_opening = user_inputs.get('Tupos_Anoigmatos')
-    
+    required_opening_type = None   # αλλιώς NameError όταν δεν δοθεί τύπος ανοίγματος
+
     if door_type == 'Ημιαυτόματη':
         required_opening_type = 'Ημιαυτόματη'
         user_inputs['Tupos_Anoigmatos'] = 'Ημιαυτόματη'
-    
+
     elif door_type == 'Αυτόματη':
-        
+
         if requested_opening in ['Κεντρικό', 'Πλαϊνό']:
             required_opening_type = requested_opening
             user_inputs['Tupos_Anoigmatos'] = required_opening_type
@@ -115,12 +118,13 @@ def find_optimal_design(data_from_api):
     estimated_area = (est_w * est_d) / 1000000
 
     # 5. Υπολογισμός Ατόμων
-    def get_area_from_standard(n):
-        std = {1:37, 2:58, 3:70, 4:90, 5:117, 6:130, 7:145, 8:160, 10:186, 12:220, 15:250, 20:310}
-        area_val = std.get(int(n), 24) * 10000
-        return area_val
+    get_area_from_standard = get_area_from_standard_persons
 
-    if atoma:
+    if atoma and force_max_area:
+        # Ο περιορισμός ατόμων δεν μπορεί να εξυπηρετηθεί γεωμετρικά: ψάχνουμε τη μέγιστη εφικτή καμπίνα
+        user_inputs['scenario'] = 'max_area'
+        theoretical_atoma = int(atoma)
+    elif atoma:
         user_inputs['scenario'] = 'fixed_area'
         theoretical_atoma = int(atoma)
         user_inputs['required_area'] = get_area_from_standard(theoretical_atoma)
@@ -145,10 +149,14 @@ def find_optimal_design(data_from_api):
     
     # 6. Φιλτράρισμα Σασί (Αρχικό από τη βάση)
     sassi_options = fetch_sassi_by_weight(db, theoretical_atoma)
-    temp_atoma = theoretical_atoma
-    while not sassi_options and temp_atoma > 1:
-        temp_atoma += 1
-        sassi_options = fetch_sassi_by_weight(db, temp_atoma)
+    if not sassi_options:
+        # Κανένα σασί δεν αντέχει τόσα άτομα (π.χ. >20): το παλιό while έτρεχε για πάντα.
+        # Παίρνουμε τα σασί με το μέγιστο διαθέσιμο όριο ατόμων.
+        cur = db.cursor(buffered=True)
+        cur.execute("SELECT MAX(Atoma_limit) FROM Sassi")
+        max_limit = cur.fetchone()[0]
+        cur.close()
+        sassi_options = fetch_sassi_by_weight(db, max_limit) if max_limit else []
 
     # Φτιάχνουμε το cache ΜΙΑ φορά στην αρχή για να υπάρχει και στα δύο σενάρια
     if 'sassi_cache' not in locals():
@@ -249,9 +257,33 @@ def find_optimal_design(data_from_api):
 
 
     
+    # ΕΠΕΚΤΑΜΕΝΗ ΑΝΑΖΗΤΗΣΗ (fallback): όλα τα σασί που χωράνε, ένα αντιπροσωπευτικό ανά "ισοδύναμη" ομάδα
+    # (ίδιο Size και ίδιες αποστάσεις => ίδιο οριζόντιο πρόβλημα για τον Z3).
+    if expand_sassi:
+        if raw_thesi == 'side':
+            exp_hosting = user_inputs['Vathos_freatiou']
+            exp_margin = 150 if door_type == 'Ημιαυτόματη' else 200
+        else:
+            exp_hosting = user_inputs['Platos_freatiou']
+            exp_margin = 200
+        seen_keys, expanded = set(), []
+        for s_id in sassi_options:
+            d = sassi_cache.get(s_id)
+            if not d:
+                continue
+            key = (d['Size'], d['Distance_wall_guiderail_min'], d['Distance_guiderail_cabin_min'], d['Distance_Guiderail_cabin'])
+            if float(d['Size']) <= exp_hosting - exp_margin and key not in seen_keys:
+                seen_keys.add(key)
+                expanded.append(s_id)
+        # πρώτα όσα θα διάλεγε και το κανονικό φίλτρο (διατηρεί τα ίδια αποτελέσματα όπου δούλευε)
+        expanded.sort(key=lambda x: (x not in efficient_filtered_sassi, -float(sassi_cache[x]['Size'])))
+        efficient_filtered_sassi = expanded
+
     # ΚΟΙΝΗ ΛΟΓΙΚΗ ΤΑΞΙΝΟΜΗΣΗΣ (Ισχύει και για τα δύο)
     
-    if efficient_filtered_sassi:
+    if efficient_filtered_sassi and expand_sassi:
+        sassi_options = efficient_filtered_sassi
+    elif efficient_filtered_sassi:
         # Ταξινομούμε φθίνουσα 
         efficient_filtered_sassi.sort(key=lambda x: float(sassi_cache[x].get('Size', 0)), reverse=True)
         
@@ -340,11 +372,81 @@ def find_optimal_design(data_from_api):
                 "max_area": float(max_area)
             }
 
+        db.close()
+        return {"status": "unsat", "unsat_causes": last_causes}
+
     except Exception as e:
         if 'db' in locals(): db.close()
         return {"status": "error", "message": f"Process Error: {e}"}
 
-    
+
+STANDARD_AREA_CM2 = {1:37, 2:58, 3:70, 4:90, 5:117, 6:130, 7:145, 8:160, 9:175, 10:186, 11:205, 12:220, 13:235, 14:250, 15:250, 20:310}
+
+
+def get_area_from_standard_persons(n):
+    """Εμβαδόν (mm²) που αντιστοιχεί σε n άτομα. Τα 9/11/13/14 έλειπαν και έπεφταν σε καμπίνα 0.24 m²."""
+    n = int(n)
+    if n in STANDARD_AREA_CM2:
+        return STANDARD_AREA_CM2[n] * 10000
+    bigger = [k for k in sorted(STANDARD_AREA_CM2) if k >= n]
+    return STANDARD_AREA_CM2[bigger[0] if bigger else max(STANDARD_AREA_CM2)] * 10000
+
+
+def persons_for_area(area_m2):
+    """Πόσα άτομα αντιστοιχούν σε εμβαδόν καμπίνας (ίδιοι κατώφλια με την εκτίμηση του find_optimal_design)."""
+    for limit, n in [(0.37, 1), (0.58, 2), (0.70, 3), (0.90, 4), (1.17, 5), (1.30, 6), (1.45, 7), (1.60, 8),
+                     (1.75, 9), (1.86, 10), (2.20, 12), (2.50, 15), (2.80, 18), (3.10, 20)]:
+        if area_m2 < limit:
+            return n
+    return 24
+
+
+def _find_with_relaxation(data_from_api):
+    """Κλιμακωτή αναζήτηση: πρώτα ο αρχικός αλγόριθμος (ίδια αποτελέσματα όπου δούλευε),
+    μετά ευρύτερο σύνολο σασί, μετά (μόνο με περιορισμό ατόμων) χαλαρότερο εμβαδόν και τέλος μέγιστη
+    εφικτή καμπίνα με προειδοποίηση. Ό,τι βγει ικανοποιεί πάντα όλους τους γεωμετρικούς κανόνες των
+    solver_constraints. Αν δεν χωράει ούτε η μέγιστη καμπίνα (π.χ. πόρτα πιο φαρδιά από το φρεάτιο), σταματά αμέσως."""
+    atoma = data_from_api.get('atoma')
+
+    def attempt(att):
+        res = _find_optimal_design(data_from_api, **att)
+        if isinstance(res, dict) and res.get('best_solution'):
+            res['relaxation'] = att
+            return res, True
+        return res, False
+
+    res, ok = attempt({})
+    if ok or (isinstance(res, dict) and res.get('status') == 'error'):
+        return res
+    res, ok = attempt({'expand_sassi': True})
+    if ok or not atoma or (isinstance(res, dict) and res.get('status') == 'error'):
+        return res
+
+    # --- Από εδώ και κάτω: ο χρήστης έδωσε περιορισμό ατόμων που δεν βγήκε με το αυστηρό εμβαδόν ---
+    probe, ok = attempt({'expand_sassi': True, 'force_max_area': True})
+    if not ok:
+        return probe   # δεν υπάρχει εφικτή καμπίνα ούτε χωρίς περιορισμό εμβαδού
+    max_area = float(probe['best_solution']['cabin_area']) / 1e6
+    need_area = get_area_from_standard_persons(atoma) / 1e6
+
+    if max_area >= need_area:
+        for f in (1.15, 1.30, 1.60, 2.00):
+            res, ok = attempt({'expand_sassi': True, 'area_hi': f})
+            if ok:
+                area = float(res['best_solution']['cabin_area']) / 1e6
+                res['warning'] = (f"Δεν υπάρχει εφικτή καμπίνα ακριβώς για {int(atoma)} άτομα σε αυτό το φρεάτιο. "
+                                  f"Η πλησιέστερη εφικτή έχει εμβαδόν {area:.2f} m² (κατηγορία {persons_for_area(area)} ατόμων).")
+                return res
+    got = persons_for_area(max_area)
+    if got < int(atoma):
+        probe['warning'] = (f"Στο φρεάτιο δεν χωράει καμπίνα για {int(atoma)} άτομα. "
+                            f"Η μεγαλύτερη εφικτή καμπίνα είναι {max_area:.2f} m² (έως {got} άτομα).")
+    else:
+        probe['warning'] = (f"Δεν υπάρχει εφικτή καμπίνα ακριβώς για {int(atoma)} άτομα σε αυτό το φρεάτιο. "
+                            f"Η πλησιέστερη εφικτή έχει εμβαδόν {max_area:.2f} m² (κατηγορία {got} ατόμων).")
+    return probe
+
+
 def solve_elevator_design(db, user_inputs, apply_constraints):
     current_inputs = user_inputs.copy()
     sassi_data = current_inputs['cached_sassi']
@@ -690,3 +792,60 @@ def solve_elevator_design(db, user_inputs, apply_constraints):
     
 
 
+
+
+def diagnose_failure(data):
+    """Εξηγεί γιατί δεν χωράει η πόρτα, με τους ίδιους κανόνες πλάτους των solver_constraints
+    (άνοιγμα + G + ανοχές) και τα νούμερα G/CO από τη βάση."""
+    causes = []
+    db = connect_db()
+    if not db:
+        return causes
+    try:
+        door_type = data.get('tupos_portas')
+        opening = data.get('tupos_anoigmatos') if door_type == 'Αυτόματη' else 'Ημιαυτόματη'
+        leaves = data.get('arithmos_fyllon') if door_type == 'Αυτόματη' else None
+        W = float(data.get('shaftwidth', 0))
+        co = float(data.get('anoigma_portas', 0))
+        ids = fetch_suitable_door_ids(db, co, door_type, leaves, opening)
+        if not ids:
+            causes.append(f"Δεν υπάρχει πόρτα στη βάση: {door_type}, {opening}, {leaves or '-'} φύλλα, άνοιγμα {co:.0f} mm.")
+            return causes
+        door = fetch_component_data(db, 'Portes', ids[0], 'Tupos_Portas_ID')
+        G, CO = float(door['G_portas']), float(door['CO_portas'])
+        if door_type != 'Αυτόματη':
+            need, formula = CO + 240 + 80 + 80 if data.get('thesi_sassi') == 'side' else CO + 240, None
+            if data.get('thesi_sassi') == 'side':
+                formula = f"άνοιγμα {CO:.0f} + 240 (κολώνες) + 2×40 (ανοχές)"
+            else:
+                formula = f"άνοιγμα {CO:.0f} + 2×120 (ελάχιστες αποστάσεις λάμπας)"
+        elif opening == 'Κεντρικό':
+            need = CO + 2 * G + 2 * 40
+            formula = f"άνοιγμα {CO:.0f} + 2×G ({G:.0f}) + 2×40 (ανοχές)"
+        else:
+            # Πλαϊνό: από τις ισότητες ar_lampa + dek_lampa + άνοιγμα = πλάτος
+            if data.get('thesi_sassi') == 'side' and data.get('kateuthinsi_anoigmatos') == 'Δεξιά':
+                need = CO + 300 + (G + 40)
+                formula = f"άνοιγμα {CO:.0f} + 300 + (G {G:.0f} + 40)"
+            elif data.get('thesi_sassi') == 'side':
+                need = CO + (G + 40) + 140
+                formula = f"άνοιγμα {CO:.0f} + (G {G:.0f} + 40) + 140 (κολώνα με δικλείδα)"
+            else:
+                need = CO + (G + 40) + 120
+                formula = f"άνοιγμα {CO:.0f} + (G {G:.0f} + 40) + 120 (κολώνα)"
+        if W < need:
+            causes.append(f"Η πόρτα δεν χωράει στο πλάτος φρεατίου: χρειάζονται τουλάχιστον {need:.0f} mm "
+                          f"({formula}), ενώ το πλάτος είναι {W:.0f} mm.")
+    except Exception as e:
+        print(f"diagnose_failure: {e}")
+    finally:
+        db.close()
+    return causes
+
+
+def find_optimal_design(data_from_api):
+    res = _find_with_relaxation(data_from_api)
+    if isinstance(res, dict) and not res.get('best_solution') and res.get('status') != 'error':
+        causes = diagnose_failure(data_from_api)
+        res['unsat_causes'] = causes or res.get('unsat_causes', [])
+    return res
