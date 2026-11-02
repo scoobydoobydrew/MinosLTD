@@ -11,10 +11,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 import hmac
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timezone
 from fastapi import Header, Request
 from fastapi.responses import JSONResponse
-from feedback import FeedbackReport, save_report, load_all_reports, _commit
+from feedback import FeedbackReport, save_report, load_all_reports, report_count, _commit
 
 
 
@@ -63,14 +65,44 @@ def get_doors():
 
 
 # 2β. ΕΣΩΤΕΡΙΚΟ ΕΡΓΑΛΕΙΟ ΑΝΑΦΟΡΑΣ ΠΡΟΒΛΗΜΑΤΩΝ (βλ. backend/feedback.py)
-# Η υποβολή είναι ανοιχτή. Η εξαγωγή προστατεύεται με FEEDBACK_TOKEN (.env) αν έχει οριστεί.
+# Η υποβολή είναι ανοιχτή αλλά περιορισμένη: μέγεθος, ρυθμός ανά client και συνολικός αριθμός αναφορών, ώστε
+# να μη γεμίσει ο δίσκος. Η εξαγωγή απαιτεί FEEDBACK_TOKEN (.env): αν δεν έχει οριστεί, η εξαγωγή είναι ΚΛΕΙΣΤΗ.
 MAX_FEEDBACK_BODY = 300_000
+FEEDBACK_RATE_LIMIT = 10          # αναφορές ανά client...
+FEEDBACK_RATE_WINDOW = 600        # ...σε αυτό το παράθυρο (δευτερόλεπτα)
+FEEDBACK_MAX_REPORTS = 5000       # ανώτατος αριθμός αναφορών στον δίσκο
+_feedback_hits = defaultdict(deque)
+
+def _client_key(request: Request) -> str:
+    # Πίσω από proxy/tunnel το request.client είναι ο proxy: προτιμάμε την IP που προωθεί ο proxy.
+    for h in ("cf-connecting-ip", "x-forwarded-for"):
+        v = request.headers.get(h)
+        if v:
+            return v.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+def _rate_limited(key: str) -> bool:
+    now = time.monotonic()
+    if len(_feedback_hits) > 10_000:
+        _feedback_hits.clear()
+    q = _feedback_hits[key]
+    while q and now - q[0] > FEEDBACK_RATE_WINDOW:
+        q.popleft()
+    if len(q) >= FEEDBACK_RATE_LIMIT:
+        return True
+    q.append(now)
+    return False
 
 @app.post("/feedback")
 async def post_feedback(request: Request):
     raw = await request.body()
     if len(raw) > MAX_FEEDBACK_BODY:
         raise HTTPException(status_code=413, detail="Πολύ μεγάλη αναφορά")
+    if _rate_limited(_client_key(request)):
+        raise HTTPException(status_code=429, detail="Πάρα πολλές αναφορές, δοκιμάστε ξανά σε λίγα λεπτά.",
+                            headers={"Retry-After": str(FEEDBACK_RATE_WINDOW)})
+    if report_count() >= FEEDBACK_MAX_REPORTS:
+        raise HTTPException(status_code=503, detail="Ο χώρος αναφορών είναι γεμάτος. Ειδοποιήστε τον διαχειριστή.")
     try:
         report = FeedbackReport.model_validate_json(raw)
         report_id = save_report(report)
@@ -81,7 +113,10 @@ async def post_feedback(request: Request):
 @app.get("/feedback/export")
 def export_feedback(x_feedback_token: Optional[str] = Header(default=None)):
     expected = os.environ.get("FEEDBACK_TOKEN", "")
-    if expected and not hmac.compare_digest(x_feedback_token or "", expected):
+    if not expected:
+        # Χωρίς token η εξαγωγή θα ήταν ανοιχτή σε όποιον φτάσει στο API (π.χ. μέσω του site): μένει κλειστή.
+        raise HTTPException(status_code=403, detail="Η εξαγωγή είναι απενεργοποιημένη (ορίστε FEEDBACK_TOKEN στο .env)")
+    if not hmac.compare_digest(x_feedback_token or "", expected):
         raise HTTPException(status_code=401, detail="Λάθος ή άγνωστο token")
     reports = load_all_reports()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")

@@ -12,7 +12,8 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-FEEDBACK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "feedback")
+# FEEDBACK_DIR (.env) επιτρέπει άλλον φάκελο, π.χ. για δοκιμές, ώστε να μη γράφουμε στις πραγματικές αναφορές.
+FEEDBACK_DIR = os.environ.get("FEEDBACK_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "feedback")
 MAX_JSON_BYTES = 100_000  # όριο μεγέθους για inputs/result/expected ώστε να μην γεμίσει ο δίσκος
 
 # Τι μπορεί να είναι λάθος (τα ίδια ids χρησιμοποιεί και το frontend)
@@ -37,7 +38,7 @@ class FeedbackReport(BaseModel):
 
 def _commit() -> str:
     try:
-        root = os.path.dirname(FEEDBACK_DIR)
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # ρίζα του repo (ανεξάρτητα από το FEEDBACK_DIR)
         out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=root, capture_output=True, text=True, timeout=3)
         dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root, capture_output=True, text=True, timeout=3)
         return out.stdout.strip() + ("+dirty" if dirty.stdout.strip() else "")
@@ -65,6 +66,12 @@ def save_report(report: FeedbackReport) -> str:
         json.dump(doc, f, ensure_ascii=False, indent=2)
     os.replace(tmp, os.path.join(FEEDBACK_DIR, f"{report_id}.json"))   # ατομική εγγραφή
     return report_id
+
+
+def report_count() -> int:
+    if not os.path.isdir(FEEDBACK_DIR):
+        return 0
+    return sum(1 for n in os.listdir(FEEDBACK_DIR) if n.endswith(".json") and not n.startswith("."))
 
 
 def load_all_reports() -> List[dict]:
