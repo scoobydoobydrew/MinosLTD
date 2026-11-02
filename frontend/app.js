@@ -273,6 +273,7 @@ async function solveElevator() {
         });
         
         const result = await response.json(); 
+        if (window.feedbackSetContext) window.feedbackSetContext(data, result);   // εσωτερικό εργαλείο αναφορών
 
         if (result.status === "success") {
             const best_horiz = result.data ? result.data.best_solution : result.best_solution;

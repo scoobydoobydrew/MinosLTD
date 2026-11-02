@@ -9,7 +9,12 @@ from plagia_opsi import calculate_plagia_opsi
 import traceback
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os 
+import os
+import hmac
+from datetime import datetime, timezone
+from fastapi import Header, Request
+from fastapi.responses import JSONResponse
+from feedback import FeedbackReport, save_report, load_all_reports, _commit
 
 
 
@@ -44,7 +49,7 @@ app.add_middleware(
     allow_origins=CORS_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-Feedback-Token"],
 )
 
 @app.get("/get-doors")
@@ -55,6 +60,35 @@ def get_doors():
     doors = fetch_all_component_ids(db, "Portes", "Tupos_Portas_ID")
     db.close()
     return {"available_doors": doors}
+
+
+# 2β. ΕΣΩΤΕΡΙΚΟ ΕΡΓΑΛΕΙΟ ΑΝΑΦΟΡΑΣ ΠΡΟΒΛΗΜΑΤΩΝ (βλ. backend/feedback.py)
+# Η υποβολή είναι ανοιχτή. Η εξαγωγή προστατεύεται με FEEDBACK_TOKEN (.env) αν έχει οριστεί.
+MAX_FEEDBACK_BODY = 300_000
+
+@app.post("/feedback")
+async def post_feedback(request: Request):
+    raw = await request.body()
+    if len(raw) > MAX_FEEDBACK_BODY:
+        raise HTTPException(status_code=413, detail="Πολύ μεγάλη αναφορά")
+    try:
+        report = FeedbackReport.model_validate_json(raw)
+        report_id = save_report(report)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"status": "ok", "id": report_id}
+
+@app.get("/feedback/export")
+def export_feedback(x_feedback_token: Optional[str] = Header(default=None)):
+    expected = os.environ.get("FEEDBACK_TOKEN", "")
+    if expected and not hmac.compare_digest(x_feedback_token or "", expected):
+        raise HTTPException(status_code=401, detail="Λάθος ή άγνωστο token")
+    reports = load_all_reports()
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return JSONResponse(
+        {"exported_at": stamp, "commit": _commit(), "count": len(reports), "reports": reports},
+        headers={"Content-Disposition": f'attachment; filename="minos-feedback-{stamp}.json"'},
+    )
 
 # 3. ΤΟ ΕΝΙΑΙΟ SOLVE ENDPOINT
 @app.post("/solve")
