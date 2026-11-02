@@ -1,0 +1,15 @@
+[Unit]
+Description=Minos elevator design API (z3 solver)
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=andreas
+WorkingDirectory=/home/andreas/MinosLTD/backend
+ExecStart=/home/andreas/MinosLTD/venv/bin/python api.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
